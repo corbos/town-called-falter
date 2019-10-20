@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Town Called Falter</title>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+    <h1>Town Called Falter</h1>
+
+    <div id="divStart">
+        <button data-action="showCreate">Create A Game</button>
+        <button data-action="showJoin">Join Game</button>
+    </div>
+
+    <div id="divCreate" class="hidden">
+        <h2>Create A Game</h2>
+        <label for="txtModeratorName">Moderator Name</label>
+        <input type="text" id="txtModeratorName">
+        <div>
+            <button data-action="create">Create</button>
+            <button data-action="cancel">Cancel</button>
+        </div>
+    </div>
+
+    <div id="divJoin" class="hidden">
+        <h2>Join A Game</h2>
+        <div>
+            <label for="txtPlayerName">Player Name</label>
+            <input type="text" id="txtPlayerName">
+        </div>
+        <div>
+            <label for="txtGameCode">Game Code</label>
+            <input type="text" id="txtGameCode">
+        </div>
+        <div>
+            <button data-action="join">Join</button>
+            <button data-action="cancel">Cancel</button>
+        </div>
+    </div>
+
+    <div id="divPlay" class="hidden">
+        <div>
+            Game Code: <span id="spnGameCode">1234</span>
+        </div>
+        <div>
+            Player: <span id="spnPlayerName">playername</span>
+        </div>
+        <div>
+            Status: <span id="spnGameStatus">new</span>
+        </div>
+        <h2 id="gameHeader">Waiting for others to join...</h2>
+        <div id="divRoster">
+
+        </div>
+        <div id="divStartSetup" class="hidden">
+            <button data-action="startSetup">Start Setup</button>
+        </div>
+    </div>
+
+    <div id="divErr" class="panel-err hidden">
+        <ul id="ulErrors">
+        </ul>
+    </div>
+    <script src="index.js"></script>
+</body>
+</html>
