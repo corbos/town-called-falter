@@ -9,12 +9,13 @@
         return document.getElementById(id);
     }
 
-    let divStart = byId("divStart");
+    let divHome = byId("divHome");
     let divCreate = byId("divCreate");
     let divJoin = byId("divJoin");
     let divPlay = byId("divPlay");
     let divRoster = byId("divRoster");
     let divStartSetup = byId("divStartSetup");
+    let divStart = byId("divStart");
     let divErr = byId("divErr");
     let ulErrors = byId("ulErrors");
 
@@ -29,11 +30,20 @@
     let gameHeader = byId("gameHeader");
 
     function hideAll() {
-        divStart.classList.add("hidden");
+        divHome.classList.add("hidden");
         divCreate.classList.add("hidden");
         divJoin.classList.add("hidden");
         divPlay.classList.add("hidden");
         divErr.classList.add("hidden");
+    }
+
+    function isModerator() {
+        return storage.getItem("moderator") === "true";
+    }
+
+    function hideAllModeratorPanels() {
+        divStartSetup.classList.add("hidden");
+        divStart.classList.add("hidden");
     }
 
     function showErr(errors) {
@@ -60,18 +70,59 @@
 
     function render(msg) {
 
+        // temporary debug
         spnGameStatus.textContent = msg.gameStatus;
-        if (msg.gameStatus === "JOINABLE") {
-            gameHeader.textContent = "Waiting for others to join...";
-        } else if (msg.gameStatus === "SETUP") {
-            gameHeader.textContent = "Moderator is setting up.";
-        } else {
-            gameHeader.textContent = msg.gameStatus;
+        hideAllModeratorPanels();
+        let moderator = isModerator();
+        let arrange = false;
+
+        switch (msg.gameStatus) {
+            case "JOINABLE":
+                gameHeader.textContent = "Waiting for others to join...";
+                if (moderator) {
+                    divStartSetup.classList.remove("hidden");
+                }
+                break;
+            case "SETUP":
+                gameHeader.textContent = "Moderator is setting up.";
+                if (moderator) {
+                    divStart.classList.remove("hidden");
+                    arrange = true;
+                }
+                break;
+            case "DAY":
+                document.body.classList.add("day");
+                break;
+            case "NIGHT":
+                break;
+            case "EVIL_WINS":
+                break;
+            case "GOOD_WINS":
+                break;
+            default:
+                break;
         }
 
         let html = "";
         msg.players.forEach(function (player) {
-            html += `<div>${player.name} ${player.connected}</div>`;
+
+            let controls = "";
+
+            if (arrange) {
+                controls = `<div>
+                <a href="#nowhere" class="href-btn" onclick="return routeClick(this, 'movePlayerUp');">
+                    <img src="/images/up.svg" class="connection-status" alt="move player up" title="move player up">
+                </a>
+                </div>`;
+            }
+
+            html += `<div class="player">
+                <div>${player.name}</div>
+                <div>
+                    <img src="/images/${player.connected ? "connected.svg" : "disconnected.svg"}" class="connection-status">
+                </div>
+                ${controls}
+            </div>`;
         });
         divRoster.innerHTML = html;
     }
@@ -86,12 +137,7 @@
         spnPlayerName.textContent = msg.playerName;
 
         hideAll();
-
         divPlay.classList.remove("hidden");
-
-        if (msg.moderator) {
-            divStartSetup.classList.remove("hidden");
-        }
     }
 
     function connect(playerName, gameCode) {
@@ -137,16 +183,16 @@
 
     var actions = {
         showCreate: function () {
-            divStart.classList.add("hidden");
+            divHome.classList.add("hidden");
             divCreate.classList.remove("hidden");
         },
         showJoin: function () {
-            divStart.classList.add("hidden");
+            divHome.classList.add("hidden");
             divJoin.classList.remove("hidden");
         },
         cancel: function () {
             hideAll();
-            divStart.classList.remove("hidden");
+            divHome.classList.remove("hidden");
         },
         create: function (evt) {
 
@@ -247,9 +293,43 @@
                 type: "START_SETUP"
             }
             ws.send(JSON.stringify(msg));
+        },
+        start: function () {
+
+            let orderedPlayers = [];
+
+            for (let i = 0; i < divRoster.childNodes.length; i++) {
+                let node = divRoster.childNodes[i].firstChild;
+                while (node.nodeType !== 1) { // find non-text node
+                    node = node.nextSibling;
+                }
+                orderedPlayers.push(node.textContent.trim());
+            }
+
+            let msg = {
+                playerName: storage.getItem("playerName"),
+                gameCode: storage.getItem("gameCode"),
+                type: "START",
+                names: orderedPlayers
+            }
+
+            ws.send(JSON.stringify(msg));
         }
     };
 
+    let clickHandlers = {
+        movePlayerUp: function (href) {
+            let div = href.parentElement.parentElement;
+            div.parentElement.insertBefore(div, div.previousSibling);
+        }
+    };
+
+    window.routeClick = function (elem, name) {
+        clickHandlers[name](elem);
+        return false;
+    };
+
+    // process DOM and check for state
     function handleAction(evt) {
         let action = this.getAttribute("data-action");
         actions[action].call(this, evt);

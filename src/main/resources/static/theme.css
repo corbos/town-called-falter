@@ -1,3 +1,48 @@
+html {
+    height: 100%;
+}
+
+body {
+    height: 100%;
+    margin: 0;
+    line-height: 1.6;
+    font-size: 18px;
+    color: #444;
+    padding: 0px 10px 10px 10px;
+}
+
+h1,
+h2,
+h3 {
+    line-height: 1;
+    margin-bottom: 10px;
+}
+
+label {
+    display: inline-block;
+    min-width: 150px;
+}
+
+input {
+    min-height: 1rem;
+    min-width: 200px;
+    line-height: 1.5;
+}
+
+button {
+    color: #212529;
+    border: 1px solid #212529;
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border: 1px solid #444;
+    background-color: #eeecec;
+}
+
+button:hover {
+    background-color: #fff;
+}
+
 .hidden {
     display: none;
 }
@@ -7,4 +52,32 @@
     background-color: #f8d7da;
     border-color: #f5c6cb;
     padding: 5px;
+}
+
+.player {
+    display: flex;
+}
+
+.player>div {
+    flex-basis: 10%;
+}
+
+.connection-status {
+    width: 15px;
+}
+
+.href-btn {
+    text-decoration: none;
+}
+
+.day {
+    background-color: #87ceeb;
+    background: linear-gradient(#d8ecf9, #87ceeb);
+    color: #000;
+}
+
+.night {
+    background-color: #080808;
+    background: linear-gradient(#515a60, #080808);
+    color: #fff;
 }

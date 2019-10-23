@@ -1,6 +1,7 @@
 package corbos.towncalledfalter.service;
 
-public enum RequestType {
+public enum ActionType {
     CONNECT,
-    START_SETUP
+    START_SETUP,
+    START
 }

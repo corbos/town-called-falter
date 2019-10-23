@@ -9,7 +9,7 @@
 <body>
     <h1>Town Called Falter</h1>
 
-    <div id="divStart">
+    <div id="divHome">
         <button data-action="showCreate">Create A Game</button>
         <button data-action="showJoin">Join Game</button>
     </div>
@@ -45,10 +45,10 @@
             Game Code: <span id="spnGameCode">1234</span>
         </div>
         <div>
-            Player: <span id="spnPlayerName">playername</span>
+            Player: <span id="spnPlayerName">Player Name</span>
         </div>
         <div>
-            Status: <span id="spnGameStatus">new</span>
+            Status: <span id="spnGameStatus">Status</span>
         </div>
         <h2 id="gameHeader">Waiting for others to join...</h2>
         <div id="divRoster">
@@ -56,6 +56,14 @@
         </div>
         <div id="divStartSetup" class="hidden">
             <button data-action="startSetup">Start Setup</button>
+        </div>
+        <div id="divStart" class="hidden">
+            <p>
+                Use the arrows to order players based on seating.
+                The last and first players "loop around".
+                Then start the game!
+            </p>
+            <button data-action="start">Start Game</button>
         </div>
     </div>
 

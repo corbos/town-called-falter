@@ -85,6 +85,9 @@ public class SocketHandler extends TextWebSocketHandler {
             case START_SETUP:
                 startSetup(session, request);
                 break;
+            case START:
+                start(session, request);
+                break;
             default:
                 System.out.println("WS Message Failure: Unknown Type");
                 break;
@@ -179,7 +182,7 @@ public class SocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        Result<Game> result = pool.startSetup(
+        Result<Game> result = pool.setup(
                 gameCode,
                 request.getPlayerName());
 
@@ -190,6 +193,26 @@ public class SocketHandler extends TextWebSocketHandler {
         Game game = result.getValue();
         sendGameState(game);
 
+    }
+
+    private void start(WebSocketSession session, ActionRequest request) {
+
+        String gameCode = sockToGame.get(session.getId());
+        if (gameCode == null || !gameCode.equals(request.getGameCode())) {
+            return;
+        }
+
+        Result<Game> result = pool.start(
+                gameCode,
+                request.getPlayerName(),
+                request.getNames());
+
+        if (result.hasError()) {
+            return;
+        }
+
+        Game game = result.getValue();
+        sendGameState(game);
     }
 
     private void sendAck(WebSocketSession session, Game g, Player p) {
