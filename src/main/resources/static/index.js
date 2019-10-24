@@ -25,7 +25,6 @@
 
     let spnGameCode = byId("spnGameCode");
     let spnPlayerName = byId("spnPlayerName");
-    let spnGameStatus = byId("spnGameStatus");
 
     let gameHeader = byId("gameHeader");
 
@@ -70,11 +69,10 @@
 
     function render(msg) {
 
-        // temporary debug
-        spnGameStatus.textContent = msg.gameStatus;
         hideAllModeratorPanels();
         let moderator = isModerator();
         let arrange = false;
+        let kill = false;
 
         switch (msg.gameStatus) {
             case "JOINABLE":
@@ -91,13 +89,22 @@
                 }
                 break;
             case "DAY":
+                gameHeader.textContent = "Day";
                 document.body.classList.add("day");
+                document.body.classList.remove("night");
+                kill = moderator;
                 break;
             case "NIGHT":
+                gameHeader.textContent = "Night";
+                document.body.classList.add("night");
+                document.body.classList.remove("day");
+                kill = moderator;
                 break;
             case "EVIL_WINS":
+                gameHeader.textContent = "EVIL WINS.";
                 break;
             case "GOOD_WINS":
+                gameHeader.textContent = "GOOD WINS.";
                 break;
             default:
                 break;
@@ -114,6 +121,12 @@
                     <img src="/images/up.svg" class="connection-status" alt="move player up" title="move player up">
                 </a>
                 </div>`;
+            } else if (kill && player.status === "ALIVE") {
+                controls = `<div>
+                <a href="#nowhere" class="href-btn" onclick="return routeClick(this, 'kill');">
+                    kill :(
+                </a>
+                </div>`;
             }
 
             html += `<div class="player">
@@ -121,6 +134,7 @@
                 <div>
                     <img src="/images/${player.connected ? "connected.svg" : "disconnected.svg"}" class="connection-status">
                 </div>
+                <div>${player.status}</div>
                 ${controls}
             </div>`;
         });
@@ -147,8 +161,7 @@
         ws.onopen = function () {
             let msg = {
                 playerName: playerName,
-                gameCode: gameCode,
-                type: "CONNECT"
+                gameCode: gameCode
             }
             ws.send(JSON.stringify(msg));
         };
@@ -290,7 +303,9 @@
             let msg = {
                 playerName: storage.getItem("playerName"),
                 gameCode: storage.getItem("gameCode"),
-                type: "START_SETUP"
+                move: {
+                    type: "SETUP"
+                }
             }
             ws.send(JSON.stringify(msg));
         },
@@ -309,8 +324,10 @@
             let msg = {
                 playerName: storage.getItem("playerName"),
                 gameCode: storage.getItem("gameCode"),
-                type: "START",
-                names: orderedPlayers
+                move: {
+                    type: "START",
+                    names: orderedPlayers
+                }
             }
 
             ws.send(JSON.stringify(msg));
@@ -321,6 +338,27 @@
         movePlayerUp: function (href) {
             let div = href.parentElement.parentElement;
             div.parentElement.insertBefore(div, div.previousSibling);
+        },
+        kill: function (href) {
+
+            let div = href.parentElement.parentElement;
+            let node = div.firstChild;
+            while (node.nodeType !== 1) { // find non-text node
+                node = node.nextSibling;
+            }
+
+            console.log(node.textContent.trim());
+
+            let msg = {
+                playerName: storage.getItem("playerName"),
+                gameCode: storage.getItem("gameCode"),
+                move: {
+                    type: "KILL",
+                    names: [node.textContent.trim()]
+                }
+            }
+
+            ws.send(JSON.stringify(msg));
         }
     };
 

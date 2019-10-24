@@ -1,6 +1,6 @@
 package corbos.towncalledfalter.game;
 
-public enum OperationResult {
+public enum MoveResult {
     SUCCESS,
     NOT_AUTHORIZED,
     INVALID_STATE,

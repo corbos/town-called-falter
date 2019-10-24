@@ -1,5 +1,6 @@
 package corbos.towncalledfalter.game;
 
+import corbos.towncalledfalter.service.Validation;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,58 +40,91 @@ public class Game {
         return moderator.getName().equals(playerName);
     }
 
-    public OperationResult join(String playerName) {
+    public synchronized MoveResult move(Move m) {
 
-        if (status != GameStatus.JOINABLE) {
-            return OperationResult.INVALID_GAME_STATUS;
+        // always need to know the player
+        if (Validation.isNullOrEmpty(m.getPlayerName())) {
+            return MoveResult.NOT_AUTHORIZED;
         }
 
+        // moves that require moderator
+        if (m.getType().requiresModerator()
+                && !isModerator(m.getPlayerName())) {
+            return MoveResult.NOT_AUTHORIZED;
+        }
+
+        // moves are only valid for specific statuses
+        if (!m.getType().isValid(status)) {
+            return MoveResult.INVALID_GAME_STATUS;
+        }
+
+        switch (m.getType()) {
+            case JOIN:
+                return join(m.getPlayerName());
+            case SETUP:
+                return setup();
+            case START:
+                return start(m);
+            case KILL:
+                return kill(m);
+            case VOTE:
+            case USE_POWER:
+            default:
+                return MoveResult.INVALID_STATE;
+        }
+
+    }
+
+    private MoveResult join(String playerName) {
+
         if (getPlayer(playerName) != null) {
-            return OperationResult.INVALID_STATE;
+            return MoveResult.INVALID_STATE;
         }
 
         players.add(new Player(playerName));
-        return OperationResult.SUCCESS;
+        return MoveResult.SUCCESS;
     }
 
-    public OperationResult setup(String playerName) {
-
-        if (status != GameStatus.JOINABLE) {
-            return OperationResult.INVALID_GAME_STATUS;
-        }
-
-        if (!isModerator(playerName)) {
-            return OperationResult.NOT_AUTHORIZED;
-        }
-
+    private MoveResult setup() {
         status = GameStatus.SETUP;
-
-        return OperationResult.SUCCESS;
+        return MoveResult.SUCCESS;
     }
 
-    public OperationResult start(String playerName, List<String> orderedPlayers) {
+    private MoveResult start(Move m) {
 
-        if (status != GameStatus.SETUP) {
-            return OperationResult.INVALID_GAME_STATUS;
-        }
-
-        if (!isModerator(playerName)) {
-            return OperationResult.NOT_AUTHORIZED;
-        }
-
-        if (!playersMatch(orderedPlayers)) {
-            return OperationResult.INVALID_STATE;
+        if (!playersMatch(m.getNames())) {
+            return MoveResult.INVALID_STATE;
         }
 
         ArrayList<Player> sorted = new ArrayList<>();
-        for (String name : orderedPlayers) {
+        for (String name : m.getNames()) {
             sorted.add(getPlayer(name));
         }
 
         players = sorted;
-        status = GameStatus.DAY;
+        status = GameStatus.NIGHT;
 
-        return OperationResult.SUCCESS;
+        return MoveResult.SUCCESS;
+    }
+
+    private MoveResult kill(Move m) {
+
+        // one and only one person can be killed at a time
+        if (m.getNames() == null
+                || m.getNames().size() != 1
+                || Validation.isNullOrEmpty(m.getNames().get(0))) {
+            return MoveResult.INVALID_STATE;
+        }
+
+        // player to-be-killed doesn't exist or is already dead!
+        Player candidate = getPlayer(m.getNames().get(0));
+        if (candidate == null || candidate.getStatus() == PlayerStatus.DEAD) {
+            return MoveResult.INVALID_STATE;
+        }
+
+        candidate.setStatus(PlayerStatus.DEAD);
+
+        return MoveResult.SUCCESS;
     }
 
     private boolean playersMatch(List<String> orderedPlayers) {

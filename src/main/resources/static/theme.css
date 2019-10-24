@@ -5,10 +5,14 @@ html {
 body {
     height: 100%;
     margin: 0;
-    line-height: 1.6;
+    line-height: 1.5;
     font-size: 18px;
     color: #444;
     padding: 0px 10px 10px 10px;
+}
+
+div {
+    margin-bottom: 5px;
 }
 
 h1,
@@ -24,9 +28,12 @@ label {
 }
 
 input {
-    min-height: 1rem;
+    height: 35px;
     min-width: 200px;
-    line-height: 1.5;
+    border: 1px solid #444;
+    border-radius: 4px;
+    font: inherit;
+    padding: 3px 5px;
 }
 
 button {
@@ -41,6 +48,15 @@ button {
 
 button:hover {
     background-color: #fff;
+}
+
+a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+a:hover {
+    text-decoration: none;
 }
 
 .hidden {
@@ -76,8 +92,18 @@ button:hover {
     color: #000;
 }
 
+
 .night {
     background-color: #080808;
     background: linear-gradient(#515a60, #080808);
     color: #fff;
+}
+
+.night a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+.night a:hover {
+    text-decoration: none;
 }

@@ -1,6 +1,7 @@
 package corbos.towncalledfalter.network;
 
 import corbos.towncalledfalter.game.Player;
+import corbos.towncalledfalter.game.PlayerStatus;
 
 public class PlayerState {
 
@@ -18,5 +19,9 @@ public class PlayerState {
 
     public boolean isConnected() {
         return connected;
+    }
+
+    public PlayerStatus getStatus() {
+        return player.getStatus();
     }
 }

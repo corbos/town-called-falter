@@ -1,27 +1,17 @@
 package corbos.towncalledfalter.service;
 
-import java.util.ArrayList;
-import java.util.List;
+import corbos.towncalledfalter.game.Move;
 
 public class ActionRequest extends GameRequest {
 
-    private ActionType type;
-    private List<String> names = new ArrayList<>();
+    private Move move;
 
-    public ActionType getType() {
-        return type;
+    public Move getMove() {
+        return move;
     }
 
-    public void setType(ActionType type) {
-        this.type = type;
-    }
-
-    public List<String> getNames() {
-        return names;
-    }
-
-    public void setNames(List<String> names) {
-        this.names = names;
+    public void setMove(Move move) {
+        this.move = move;
     }
 
 }

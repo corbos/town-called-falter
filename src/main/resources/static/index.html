@@ -16,8 +16,10 @@
 
     <div id="divCreate" class="hidden">
         <h2>Create A Game</h2>
-        <label for="txtModeratorName">Moderator Name</label>
-        <input type="text" id="txtModeratorName">
+        <div>
+            <label for="txtModeratorName">Moderator Name</label>
+            <input type="text" id="txtModeratorName">
+        </div>
         <div>
             <button data-action="create">Create</button>
             <button data-action="cancel">Cancel</button>
@@ -47,9 +49,7 @@
         <div>
             Player: <span id="spnPlayerName">Player Name</span>
         </div>
-        <div>
-            Status: <span id="spnGameStatus">Status</span>
-        </div>
+
         <h2 id="gameHeader">Waiting for others to join...</h2>
         <div id="divRoster">
 

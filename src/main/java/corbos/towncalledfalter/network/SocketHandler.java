@@ -16,7 +16,6 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-// 
 @Component
 public class SocketHandler extends TextWebSocketHandler {
 
@@ -75,22 +74,20 @@ public class SocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        System.out.printf("WS Message %s: %s\n",
-                request.getType(), session.getId());
+        if (request.getMove() == null) { // assume a connect request
 
-        switch (request.getType()) {
-            case CONNECT:
-                connect(session, request);
-                break;
-            case START_SETUP:
-                startSetup(session, request);
-                break;
-            case START:
-                start(session, request);
-                break;
-            default:
-                System.out.println("WS Message Failure: Unknown Type");
-                break;
+            System.out.printf("WS Message CONNECT: %s\n", session.getId());
+            connect(session, request);
+
+        } else { // all other actions
+
+            request.getMove().setPlayerName(request.getPlayerName());
+
+            System.out.printf("WS Message %s: %s\n",
+                    request.getMove().getType(),
+                    session.getId());
+
+            move(session, request);
         }
 
     }
@@ -135,6 +132,7 @@ public class SocketHandler extends TextWebSocketHandler {
     }
 
     private void register(WebSocketSession session, String gameCode, String playerName) {
+
         synchronized (lock) {
             // 1. Map game to player
             var players = gameToSocks.get(gameCode);
@@ -158,6 +156,7 @@ public class SocketHandler extends TextWebSocketHandler {
     }
 
     private void disconnect(WebSocketSession session) {
+
         synchronized (lock) {
             String gameCode = sockToGame.get(session.getId());
             if (gameCode != null) {
@@ -175,16 +174,16 @@ public class SocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void startSetup(WebSocketSession session, ActionRequest request) {
+    private void move(WebSocketSession session, ActionRequest request) {
 
         String gameCode = sockToGame.get(session.getId());
         if (gameCode == null || !gameCode.equals(request.getGameCode())) {
             return;
         }
 
-        Result<Game> result = pool.setup(
-                gameCode,
-                request.getPlayerName());
+        Result<Game> result = pool.move(
+                request.getGameCode(),
+                request.getMove());
 
         if (result.hasError()) {
             return;
@@ -193,26 +192,6 @@ public class SocketHandler extends TextWebSocketHandler {
         Game game = result.getValue();
         sendGameState(game);
 
-    }
-
-    private void start(WebSocketSession session, ActionRequest request) {
-
-        String gameCode = sockToGame.get(session.getId());
-        if (gameCode == null || !gameCode.equals(request.getGameCode())) {
-            return;
-        }
-
-        Result<Game> result = pool.start(
-                gameCode,
-                request.getPlayerName(),
-                request.getNames());
-
-        if (result.hasError()) {
-            return;
-        }
-
-        Game game = result.getValue();
-        sendGameState(game);
     }
 
     private void sendAck(WebSocketSession session, Game g, Player p) {

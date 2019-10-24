@@ -1,6 +1,8 @@
 package corbos.towncalledfalter.network;
 
 import corbos.towncalledfalter.game.Game;
+import corbos.towncalledfalter.game.Move;
+import corbos.towncalledfalter.game.MoveType;
 import corbos.towncalledfalter.service.BaseRequest;
 import corbos.towncalledfalter.service.GamePool;
 import corbos.towncalledfalter.service.GameRequest;
@@ -34,13 +36,18 @@ public class GameController {
 
     @PutMapping("/join")
     public ResponseEntity<Result<Game>> join(@RequestBody GameRequest request) {
-        Result<Game> result = pool.join(request.getGameCode(), request.getPlayerName());
+
+        Move m = new Move(request.getPlayerName(), MoveType.JOIN);
+
+        Result<Game> result = pool.move(request.getGameCode(), m);
+
         HttpStatus status = HttpStatus.OK;
         if (result.getStatus() == ResponseStatus.INVALID) {
             status = HttpStatus.UNPROCESSABLE_ENTITY;
         } else if (result.getStatus() == ResponseStatus.NOT_FOUND) {
             status = HttpStatus.NOT_FOUND;
         }
+        
         return new ResponseEntity(result, status);
     }
 }
