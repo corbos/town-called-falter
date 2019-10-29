@@ -7,6 +7,7 @@ public class Move {
 
     private String playerName;
     private MoveType type;
+    private Ability ability;
     private List<String> names = new ArrayList<>();
 
     // empty ctor required for serialization
@@ -32,6 +33,14 @@ public class Move {
 
     public void setType(MoveType type) {
         this.type = type;
+    }
+
+    public Ability getAbility() {
+        return ability;
+    }
+
+    public void setAbility(Ability a) {
+        ability = a;
     }
 
     public List<String> getNames() {

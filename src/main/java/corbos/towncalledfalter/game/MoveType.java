@@ -8,8 +8,7 @@ public enum MoveType {
     KILL(true, new GameStatus[]{GameStatus.DAY, GameStatus.NIGHT}),
     // all player moves
     JOIN(false, new GameStatus[]{GameStatus.JOINABLE}),
-    VOTE(false, new GameStatus[]{GameStatus.DAY, GameStatus.NIGHT}),
-    USE_POWER(false, new GameStatus[]{GameStatus.DAY, GameStatus.NIGHT});
+    USE_ABILITY(false, new GameStatus[]{GameStatus.DAY, GameStatus.NIGHT});
 
     private final boolean moderator;
     private final GameStatus[] validStatuses;

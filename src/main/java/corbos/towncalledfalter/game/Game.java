@@ -1,8 +1,13 @@
 package corbos.towncalledfalter.game;
 
+import corbos.towncalledfalter.game.roles.Seer;
+import corbos.towncalledfalter.game.roles.Villager;
+import corbos.towncalledfalter.game.roles.Wolf;
 import corbos.towncalledfalter.service.Validation;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 public class Game {
 
@@ -10,11 +15,17 @@ public class Game {
     private final Player moderator;
     private List<Player> players = new ArrayList<>();
     private GameStatus status = GameStatus.JOINABLE;
+    private final Random rand;
 
     public Game(String code, String moderatorName) {
+        this(code, moderatorName, new Random());
+    }
+
+    public Game(String code, String moderatorName, Random rand) {
         this.code = code;
         moderator = new Player(moderatorName);
         players.add(moderator);
+        this.rand = rand;
     }
 
     public String getCode() {
@@ -67,8 +78,8 @@ public class Game {
                 return start(m);
             case KILL:
                 return kill(m);
-            case VOTE:
-            case USE_POWER:
+            case USE_ABILITY:
+                return useAbility(m);
             default:
                 return MoveResult.INVALID_STATE;
         }
@@ -101,7 +112,33 @@ public class Game {
             sorted.add(getPlayer(name));
         }
 
+        // proper order
         players = sorted;
+
+        // assign roles
+        ArrayList<Role> roles = new ArrayList<>();
+        roles.add(new Seer());
+        roles.add(new Wolf());
+
+        if (players.size() > 5) {
+            roles.add(new Wolf());
+        }
+
+        int villagerCount = players.size() - roles.size();
+        for (int i = 0; i < villagerCount; i++) {
+            roles.add(new Villager());
+        }
+        Collections.shuffle(roles, rand);
+        for (int i = 0; i < players.size(); i++) {
+            players.get(i).setRole(roles.get(i));
+        }
+
+        // queue actions
+        for (Player p : players) {
+            p.getRole().queueNight(this, p, true);
+        }
+
+        // update game status
         status = GameStatus.NIGHT;
 
         return MoveResult.SUCCESS;
@@ -123,6 +160,37 @@ public class Game {
         }
 
         candidate.setStatus(PlayerStatus.DEAD);
+
+        return MoveResult.SUCCESS;
+    }
+
+    private MoveResult useAbility(Move m) {
+
+        Player player = getPlayer(m.getPlayerName());
+        if (player == null) {
+            return MoveResult.INVALID_STATE;
+        }
+
+        player.getRole().processMove(m, this, player);
+
+        // everyone is done
+        if (players.stream()
+                .allMatch(p -> p.getRole().currentPrompt() == null)) {
+            if (status == GameStatus.DAY) {
+                // queue night actions
+                for (Player p : players) {
+                    p.getRole().queueNight(this, p, false);
+                }
+                status = GameStatus.NIGHT;
+            } else {
+                // queue day actions
+                for (Player p : players) {
+                    p.getRole().queueDay(this, p);
+                }
+                status = GameStatus.DAY;
+            }
+
+        }
 
         return MoveResult.SUCCESS;
     }
