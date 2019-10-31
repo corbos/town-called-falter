@@ -6,7 +6,6 @@ import corbos.towncalledfalter.game.Game;
 import corbos.towncalledfalter.game.Move;
 import corbos.towncalledfalter.game.Player;
 import corbos.towncalledfalter.game.Prompt;
-import corbos.towncalledfalter.game.Role;
 import java.util.List;
 
 public class Seer extends Role {
@@ -34,26 +33,12 @@ public class Seer extends Role {
     @Override
     public void processMove(Move m, Game game, Player player) {
 
-        // must happen first
-        super.processMove(m, game, player);
-
-        Prompt current = currentPrompt();
-
-        // no prompt or wrong type
-        if (current == null
-                || current.getAbility() != Ability.INTUIT
-                || m.getAbility() != Ability.INTUIT) {
-            return;
-        }
-
-        // exactly one player can be "intuited"
-        List<String> names = m.getNames();
-        if (names == null || names.size() != 1) {
+        if (!moveIsMatch(m)) {
             return;
         }
 
         // no player 
-        Player p = game.getPlayer(names.get(0));
+        Player p = game.getPlayer(m.getNames().get(0));
         if (p == null) {
             return;
         }

@@ -5,8 +5,6 @@ public class Prompt {
     private final String prompt;
     private final Ability ability;
     private final int count;
-    private boolean selectSelf;
-    private boolean dismissable;
 
     public Prompt(String prompt, Ability ability, int count) {
         this.prompt = prompt;
@@ -24,22 +22,6 @@ public class Prompt {
 
     public int getCount() {
         return count;
-    }
-
-    public boolean canSelectSelf() {
-        return selectSelf;
-    }
-
-    public void setSelectSelf(boolean selectSelf) {
-        this.selectSelf = selectSelf;
-    }
-
-    public boolean isDismissable() {
-        return dismissable;
-    }
-
-    public void setDismissable(boolean dismissable) {
-        this.dismissable = dismissable;
     }
 
 }

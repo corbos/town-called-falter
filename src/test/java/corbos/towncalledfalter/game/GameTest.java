@@ -14,6 +14,98 @@ public class GameTest {
 
     }
 
+    /* 5 person game
+    sarah -> moderator, villager
+    umo -> villager
+    basil -> villager
+    rupert -> wolf
+    klee - seer
+     */
+    @Test
+    public void testVillagersWin() {
+
+        Game game = makeGame(5);
+        assertEquals(GameStatus.NIGHT, game.getStatus());
+
+        Move m = new Move("klee", MoveType.USE_ABILITY);
+        m.setAbility(Ability.INTUIT);
+        m.setNames(Arrays.asList("sarah"));
+        game.move(m);
+
+        assertEquals(GameStatus.DAY_NOMINATE, game.getStatus());
+
+        // non-existent player
+        game.move(makeNomination("sarah", "nope"));
+        assertEquals(GameStatus.DAY_NOMINATE, game.getStatus());
+
+        // valid nomination
+        game.move(makeNomination("sarah", "klee"));
+        assertEquals(GameStatus.DAY_VOTE, game.getStatus());
+
+        for (Player p : game.getPlayers()) {
+            m = new Move(p.getName(), MoveType.VOTE);
+            game.move(m);
+        }
+
+        assertEquals(GameStatus.DAY_NOMINATE, game.getStatus());
+
+        // sarah can't nominate again    
+        game.move(makeNomination("sarah", "umo"));
+        assertEquals(GameStatus.DAY_NOMINATE, game.getStatus());
+
+        // klee already received a vote, so he can't be nominated again      
+        game.move(makeNomination("umo", "klee"));
+        assertEquals(GameStatus.DAY_NOMINATE, game.getStatus());
+
+        // valid nomination
+        game.move(makeNomination("umo", "basil"));
+        assertEquals(GameStatus.DAY_VOTE, game.getStatus());
+
+        for (Player p : game.getPlayers()) {
+            m = new Move(p.getName(), MoveType.VOTE);
+            if (!p.getName().equals("basil")) {
+                m.setConfirmed(true);
+            }
+            game.move(m);
+        }
+
+        assertEquals(GameStatus.NIGHT, game.getStatus());
+        assertEquals(PlayerStatus.DEAD, game.getPlayer("basil").getStatus());
+
+        m = new Move("klee", MoveType.USE_ABILITY);
+        m.setAbility(Ability.INTUIT);
+        m.setNames(Arrays.asList("umo"));
+        game.move(m);
+
+        assertEquals(GameStatus.NIGHT, game.getStatus());
+
+        m = new Move("rupert", MoveType.USE_ABILITY);
+        m.setAbility(Ability.KILL);
+        m.setNames(Arrays.asList("umo"));
+        game.move(m);
+
+        assertEquals(PlayerStatus.DEAD, game.getPlayer("umo").getStatus());
+        assertEquals(GameStatus.DAY_NOMINATE, game.getStatus());
+
+        // valid nomination
+        game.move(makeNomination("sarah", "rupert"));
+        assertEquals(GameStatus.DAY_VOTE, game.getStatus());
+
+        for (Player p : game.getPlayers()) {
+            if (p.getStatus() == PlayerStatus.DEAD) {
+                continue;
+            }
+            m = new Move(p.getName(), MoveType.VOTE);
+            if (!p.getName().equals("rupert")) {
+                m.setConfirmed(true);
+            }
+            game.move(m);
+        }
+
+        assertEquals(PlayerStatus.DEAD, game.getPlayer("rupert").getStatus());
+        assertEquals(GameStatus.GOOD_WINS, game.getStatus());
+    }
+
     @Test
     public void testSeer() {
 
@@ -27,9 +119,10 @@ public class GameTest {
 
         game.move(m);
 
-        assertTrue(game.getPlayer("klee").getMessages().size() == 1);
-        assertEquals(Ability.NOMINATE,
-                game.getPlayer("klee").getRole().currentPrompt().getAbility());
+        assertEquals(1, game.getPlayer("klee").getMessages().size());
+        assertNull(game.getPlayer("klee").getRole().currentPrompt());
+        assertEquals(GameStatus.DAY_NOMINATE, game.getStatus());
+
     }
 
     @Test
@@ -71,6 +164,12 @@ public class GameTest {
         result.move(startMove);
 
         return result;
+    }
+
+    private Move makeNomination(String sender, String receiver) {
+        Move m = new Move(sender, MoveType.NOMINATE);
+        m.setNames(Arrays.asList(receiver));
+        return m;
     }
 
 }

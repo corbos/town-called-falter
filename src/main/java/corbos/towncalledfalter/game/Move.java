@@ -9,6 +9,7 @@ public class Move {
     private MoveType type;
     private Ability ability;
     private List<String> names = new ArrayList<>();
+    private boolean confirmed;
 
     // empty ctor required for serialization
     public Move() {
@@ -44,11 +45,22 @@ public class Move {
     }
 
     public List<String> getNames() {
+        if (names == null) {
+            return new ArrayList<>();
+        }
         return names;
     }
 
     public void setNames(List<String> names) {
         this.names = names;
+    }
+
+    public boolean isConfirmed() {
+        return confirmed;
+    }
+
+    public void setConfirmed(boolean confirmed) {
+        this.confirmed = confirmed;
     }
 
 }

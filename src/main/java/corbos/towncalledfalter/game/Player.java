@@ -1,5 +1,6 @@
 package corbos.towncalledfalter.game;
 
+import corbos.towncalledfalter.game.roles.Role;
 import java.util.ArrayList;
 import java.util.List;
 
