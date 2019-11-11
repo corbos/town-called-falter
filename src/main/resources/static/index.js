@@ -1,6 +1,6 @@
 ; (function () {
 
-    const socketUrl = "ws://localhost:8080/messages"
+    const socketUrl = `ws://${window.location.host}/messages`;
 
     let ws;
     let storage = window.sessionStorage;
@@ -13,10 +13,15 @@
     let divCreate = byId("divCreate");
     let divJoin = byId("divJoin");
     let divPlay = byId("divPlay");
+    let divRole = byId("divRole");
     let divRoster = byId("divRoster");
     let divStartSetup = byId("divStartSetup");
     let divStart = byId("divStart");
     let divErr = byId("divErr");
+    let divNominate = byId("divNominate");
+    let divVote = byId("divVote");
+    let divMessages = byId("divMessages");
+
     let ulErrors = byId("ulErrors");
 
     let txtModeratorName = byId("txtModeratorName");
@@ -28,6 +33,94 @@
 
     let gameHeader = byId("gameHeader");
 
+    // action panel
+    let actionPanel = {
+        prompt: null,
+        panel: byId("divAction"),
+        promptHeader: byId("promptHeader"),
+        divActionPlayers: byId("divActionPlayers"),
+        hide: function () {
+            this.panel.classList.add("hidden");
+        },
+        getSelectedPlayers: function () {
+            let json = storage.getItem("selectedPlayers");
+            if (json && json.length > 0) {
+                return JSON.parse(json);
+            }
+            return [];
+        },
+        setSelectedPlayers: function (selectedPlayers) {
+            storage.setItem("selectedPlayers", JSON.stringify(selectedPlayers));
+        },
+        init: function (prompt, players) {
+
+            if (prompt) {
+                if (!this.areEqual(prompt)) {
+                    this.promptHeader.textContent = prompt.prompt;
+                    let selectedPlayers = this.getSelectedPlayers();
+                    let html = "";
+                    players.forEach(function (p) {
+                        let selected = selectedPlayers.indexOf(p.name) >= 0 ? 'class="selected"' : '';
+                        html += `<div>
+                        <button onclick="routeClick(this, 'select');"${selected}>${p.name}</button>
+                    </div>`;
+                    });
+                    this.divActionPlayers.innerHTML = html;
+                }
+                this.panel.classList.remove("hidden");
+            } else {
+                this.hide();
+            }
+        },
+        areEqual: function (prompt) {
+
+            let eq = (prompt === null && this.prompt === null)
+                || (prompt !== null && this.prompt !== null
+                    && prompt.version === this.prompt.version);
+
+            if (!eq) {
+                this.prompt = prompt;
+            }
+
+            return eq;
+        },
+        select: function (btn) {
+
+            let selectedPlayers = this.getSelectedPlayers();
+            let playerName = btn.innerText.trim();
+
+            if (btn.classList.contains("selected")) {
+                let index = selectedPlayers.indexOf(playerName);
+                selectedPlayers.splice(index, 1);
+                btn.classList.remove("selected");
+            } else {
+                btn.classList.add("selected");
+                selectedPlayers.push(playerName);
+            }
+
+            if (selectedPlayers.length === this.prompt.count) {
+
+                let msg = {
+                    playerName: storage.getItem("playerName"),
+                    gameCode: storage.getItem("gameCode"),
+                    move: {
+                        type: "USE_ABILITY",
+                        ability: this.prompt.ability,
+                        names: selectedPlayers
+                    }
+                }
+
+                ws.send(JSON.stringify(msg));
+
+                // clear
+                selectedPlayers = [];
+                this.prompt = null;
+            }
+
+            this.setSelectedPlayers(selectedPlayers);
+        }
+    };
+
     function hideAll() {
         divHome.classList.add("hidden");
         divCreate.classList.add("hidden");
@@ -38,11 +131,6 @@
 
     function isModerator() {
         return storage.getItem("moderator") === "true";
-    }
-
-    function hideAllModeratorPanels() {
-        divStartSetup.classList.add("hidden");
-        divStart.classList.add("hidden");
     }
 
     function showErr(errors) {
@@ -64,54 +152,116 @@
     }
 
     function handleNetworkErr(err) {
-        console.log(err);
+        showErr(err);
     }
 
-    function render(msg) {
+    function renderRole(role) {
+        divRole.innerHTML = `<div><label>Role:</label>${role.name}</div>
+        <p>${role.description}</p>`;
+        divRole.classList.remove("hidden");
+    }
 
-        hideAllModeratorPanels();
+    function renderVote(msg) {
+        if (msg.canVote) {
+            byId("divVoteMessage").innerHTML = `<div>${msg.nominator} nominated ${msg.nominated}.</div>
+            <div>Execute ${msg.nominated}?</div>`;
+            divVote.classList.remove("hidden");
+        }
+    }
+
+    function renderMessages(playerMessages) {
+        if (playerMessages.length > 0) {
+            let html = '<h3>Private Messages</h3>';
+            playerMessages.forEach(function (msg) {
+                html += `<div>${msg}</div>`
+            });
+            divMessages.innerHTML = html;
+            divMessages.classList.remove("hidden");
+        }
+    }
+
+    function render(gameState) {
+
+        // hide stuff. gotta be a better way
+        divStartSetup.classList.add("hidden");
+        divStart.classList.add("hidden");
+        divNominate.classList.add("hidden");
+        divVote.classList.add("hidden");
+        divRoster.classList.add("hidden");
+        actionPanel.hide();
+
         let moderator = isModerator();
         let arrange = false;
         let kill = false;
+        let canNominate = false;
 
-        switch (msg.gameStatus) {
+        switch (gameState.gameStatus) {
             case "JOINABLE":
                 gameHeader.textContent = "Waiting for others to join...";
+                divRoster.classList.remove("hidden");
                 if (moderator) {
                     divStartSetup.classList.remove("hidden");
                 }
                 break;
             case "SETUP":
                 gameHeader.textContent = "Moderator is setting up.";
+                divRoster.classList.remove("hidden");
                 if (moderator) {
                     divStart.classList.remove("hidden");
                     arrange = true;
                 }
                 break;
-            case "DAY":
-                gameHeader.textContent = "Day";
-                document.body.classList.add("day");
-                document.body.classList.remove("night");
+            case "DAY_NOMINATE":
+                renderRole(gameState.role);
+                renderMessages(gameState.playerMessages);
+                gameHeader.textContent = "Day: Accepting Nominations";
+                divRoster.classList.remove("hidden");
+                document.body.className = "day";
+                kill = moderator;
+                canNominate = gameState.canNominate;
+                if (canNominate) {
+                    divNominate.classList.remove("hidden");
+                }
+                break;
+            case "DAY_VOTE":
+                renderRole(gameState.role);
+                renderMessages(gameState.playerMessages);
+                gameHeader.textContent = "Day: Vote!";
+                renderVote(gameState);
+                document.body.className = "day";
                 kill = moderator;
                 break;
             case "NIGHT":
+                renderRole(gameState.role);
+                renderMessages(gameState.playerMessages);
+                actionPanel.init(gameState.prompt, gameState.players);
                 gameHeader.textContent = "Night";
-                document.body.classList.add("night");
-                document.body.classList.remove("day");
+                divRoster.classList.remove("hidden");
+                document.body.className = "night";
                 kill = moderator;
                 break;
             case "EVIL_WINS":
+                renderRole(gameState.role);
+                renderMessages(gameState.playerMessages);
                 gameHeader.textContent = "EVIL WINS.";
+                divRoster.classList.remove("hidden");
+                document.body.className = "evil-wins";
                 break;
             case "GOOD_WINS":
+                renderRole(gameState.role);
+                renderMessages(gameState.playerMessages);
                 gameHeader.textContent = "GOOD WINS.";
+                divRoster.classList.remove("hidden");
+                document.body.className = "good-wins";
                 break;
             default:
                 break;
         }
 
+
+
         let html = "";
-        msg.players.forEach(function (player) {
+        gameState.players.forEach(function (player) {
 
             let controls = "";
 
@@ -123,9 +273,14 @@
                 </div>`;
             } else if (kill && player.status === "ALIVE") {
                 controls = `<div>
-                <a href="#nowhere" class="href-btn" onclick="return routeClick(this, 'kill');">
-                    kill :(
-                </a>
+                <button onclick="return routeClick(this, 'kill');">kill</button>
+                </div>`;
+            }
+
+            if (canNominate && storage.getItem("playerName") != player.name
+                && gameState.possibleNominations.indexOf(player.name) >= 0) {
+                controls += `<div>
+                <button onclick="routeClick(this, 'nominate');">nominate</button>
                 </div>`;
             }
 
@@ -138,6 +293,7 @@
                 ${controls}
             </div>`;
         });
+
         divRoster.innerHTML = html;
     }
 
@@ -169,13 +325,10 @@
         ws.onmessage = function (message) {
             let msg = JSON.parse(message.data);
             console.log(msg);
-            switch (msg.type) {
-                case "ACK":
-                    ack(msg);
-                    break;
-                case "GAME_STATE":
-                    render(msg);
-                    break;
+            if (msg.type === "ACK") {
+                ack(msg);
+            } else {
+                render(msg);
             }
         };
 
@@ -257,8 +410,8 @@
             }
 
             let gameCode = txtGameCode.value.trim();
-            if (gameCode.length === 0) {
-                errors.push("Game code is required.")
+            if (gameCode.length !== 4) {
+                errors.push("Game code must be four characters.")
             }
 
             if (errors.length > 0) {
@@ -341,6 +494,10 @@
         },
         kill: function (href) {
 
+            if (!confirm("You can't un-kill someone. Are you sure?")) {
+                return;
+            }
+
             let div = href.parentElement.parentElement;
             let node = div.firstChild;
             while (node.nodeType !== 1) { // find non-text node
@@ -359,11 +516,59 @@
             }
 
             ws.send(JSON.stringify(msg));
+        },
+        nominate: function (btn) {
+
+            let div = btn.parentElement.parentElement;
+            let node = div.firstChild;
+            while (node.nodeType !== 1) { // find non-text node
+                node = node.nextSibling;
+            }
+
+            console.log(node.textContent.trim());
+
+            let msg = {
+                playerName: storage.getItem("playerName"),
+                gameCode: storage.getItem("gameCode"),
+                move: {
+                    type: "NOMINATE",
+                    names: [node.textContent.trim()]
+                }
+            }
+
+            ws.send(JSON.stringify(msg));
+        },
+        declineNomination: function (btn) {
+            let msg = {
+                playerName: storage.getItem("playerName"),
+                gameCode: storage.getItem("gameCode"),
+                move: {
+                    type: "NOMINATE",
+                    names: []
+                }
+            }
+
+            ws.send(JSON.stringify(msg));
+        },
+        select: function (btn) {
+            actionPanel.select(btn);
+        },
+        vote: function (_btn, confirmed) {
+            let msg = {
+                playerName: storage.getItem("playerName"),
+                gameCode: storage.getItem("gameCode"),
+                move: {
+                    type: "VOTE",
+                    confirmed: confirmed
+                }
+            }
+
+            ws.send(JSON.stringify(msg));
         }
     };
 
-    window.routeClick = function (elem, name) {
-        clickHandlers[name](elem);
+    window.routeClick = function (elem, name, arg) {
+        clickHandlers[name](elem, arg);
         return false;
     };
 

@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 public class Wolf extends Role {
 
-    private static HashSet<Player> killVotes = new HashSet<>();
+    private final static HashSet<Player> killVotes = new HashSet<>();
 
     public Wolf() {
         super(Alignment.EVIL);
@@ -55,7 +55,11 @@ public class Wolf extends Role {
         boolean allVoted = wolves.stream()
                 .allMatch(i -> i.getRole().currentPrompt() == null);
 
-        if (allVoted && killVotes.size() == 1) {
+        if (!allVoted) {
+            return;
+        }
+
+        if (killVotes.size() == 1) {
             p.setStatus(PlayerStatus.DEAD);
         } else {
             for (Player wolf : wolves) {

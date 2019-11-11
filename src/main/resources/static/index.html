@@ -15,45 +15,71 @@
     </div>
 
     <div id="divCreate" class="hidden">
-        <h2>Create A Game</h2>
-        <div>
-            <label for="txtModeratorName">Moderator Name</label>
-            <input type="text" id="txtModeratorName">
-        </div>
-        <div>
-            <button data-action="create">Create</button>
-            <button data-action="cancel">Cancel</button>
-        </div>
+        <form onsubmit="return false;">
+            <h2>Create A Game</h2>
+            <div>
+                <label for="txtModeratorName">Moderator Name</label>
+                <input type="text" id="txtModeratorName">
+            </div>
+            <div>
+                <button type="submit" data-action="create">Create</button>
+                <button data-action="cancel">Cancel</button>
+            </div>
+        </form>
     </div>
 
     <div id="divJoin" class="hidden">
-        <h2>Join A Game</h2>
-        <div>
-            <label for="txtPlayerName">Player Name</label>
-            <input type="text" id="txtPlayerName">
-        </div>
-        <div>
-            <label for="txtGameCode">Game Code</label>
-            <input type="text" id="txtGameCode">
-        </div>
-        <div>
-            <button data-action="join">Join</button>
-            <button data-action="cancel">Cancel</button>
-        </div>
+        <form onsubmit="return false;">
+            <h2>Join A Game</h2>
+            <div>
+                <label for="txtPlayerName">Player Name</label>
+                <input type="text" id="txtPlayerName">
+            </div>
+            <div>
+                <label for="txtGameCode">Game Code</label>
+                <input type="text" id="txtGameCode">
+            </div>
+            <div>
+                <button type="submit" data-action="join">Join</button>
+                <button data-action="cancel">Cancel</button>
+            </div>
+        </form>
     </div>
 
     <div id="divPlay" class="hidden">
         <div>
-            Game Code: <span id="spnGameCode">1234</span>
+            <label>Game Code:</label><span id="spnGameCode">1234</span>
         </div>
         <div>
-            Player: <span id="spnPlayerName">Player Name</span>
+            <label>Player:</label><span id="spnPlayerName">Player Name</span>
+        </div>
+        <div id="divRole" class="hidden">
+
         </div>
 
         <h2 id="gameHeader">Waiting for others to join...</h2>
         <div id="divRoster">
 
         </div>
+
+        <div id="divNominate" class="hidden">
+            <button onclick="routeClick(this, 'declineNomination');">decline nomination</button>
+        </div>
+
+        <div id="divAction" class="hidden">
+            <h3 id="promptHeader"></h3>
+            <div id="divActionPlayers"></div>
+        </div>
+
+        <div id="divVote" class="hidden">
+            <div id="divVoteMessage"></div>
+            <div>
+                <button onclick="routeClick(this, 'vote', true);">Yes</button>
+                <button onclick="routeClick(this, 'vote', false);">No</button>
+            </div>
+        </div>
+
+        <!-- admin -->
         <div id="divStartSetup" class="hidden">
             <button data-action="startSetup">Start Setup</button>
         </div>
@@ -65,6 +91,10 @@
             </p>
             <button data-action="start">Start Game</button>
         </div>
+    </div>
+
+    <div id="divMessages" class="hidden">
+
     </div>
 
     <div id="divErr" class="panel-err hidden">

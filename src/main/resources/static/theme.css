@@ -50,6 +50,18 @@ button:hover {
     background-color: #fff;
 }
 
+button[disabled]:hover {
+    background-color: #eeecec;
+}
+
+button:disabled {
+    opacity: 0.5;
+}
+
+button.selected {
+    background-color: #d4edda;
+}
+
 a {
     color: inherit;
     text-decoration: underline;
@@ -72,10 +84,11 @@ a:hover {
 
 .player {
     display: flex;
+    align-items: baseline;
 }
 
 .player>div {
-    flex-basis: 10%;
+    padding: 5px 10px;
 }
 
 .connection-status {
@@ -88,14 +101,10 @@ a:hover {
 
 .day {
     background-color: #87ceeb;
-    background: linear-gradient(#d8ecf9, #87ceeb);
-    color: #000;
 }
 
-
 .night {
-    background-color: #080808;
-    background: linear-gradient(#515a60, #080808);
+    background-color: #404447;
     color: #fff;
 }
 
@@ -106,4 +115,13 @@ a:hover {
 
 .night a:hover {
     text-decoration: none;
+}
+
+.evil-wins {
+    background-color: #9c2b31;
+    color: #fff;
+}
+
+.good-wins {
+    background-color: #a5ddfc;
 }

@@ -20,7 +20,7 @@ public class Game {
 
     // nomination plumbing
     private final ArrayList<Player> possibleNominators = new ArrayList<>();
-    private final ArrayList<Player> possibleNominated = new ArrayList<>();
+    private final ArrayList<Player> possibleNominations = new ArrayList<>();
     private Player nominator;
     private Player nominated;
 
@@ -61,6 +61,26 @@ public class Game {
 
     public boolean isModerator(String playerName) {
         return moderator.getName().equals(playerName);
+    }
+
+    public boolean canNominate(Player player) {
+        return possibleNominators.contains(player);
+    }
+
+    public List<Player> getPossibleNominations() {
+        return possibleNominations;
+    }
+
+    public Player getNominator() {
+        return nominator;
+    }
+
+    public Player getNominated() {
+        return nominated;
+    }
+
+    public boolean canVote(Player player) {
+        return votes.get(player) == null;
     }
 
     public synchronized MoveResult move(Move m) {
@@ -182,6 +202,8 @@ public class Game {
 
         candidate.setStatus(PlayerStatus.DEAD);
 
+        checkWin();
+
         return MoveResult.SUCCESS;
     }
 
@@ -225,12 +247,12 @@ public class Game {
             // everyone passed, jump to night
             if (possibleNominators.isEmpty()) {
                 makeNight(false);
-                return MoveResult.SUCCESS;
             }
-            return MoveResult.INVALID_STATE;
+
+            return MoveResult.SUCCESS;
         }
 
-        Player n = possibleNominated.stream()
+        Player n = possibleNominations.stream()
                 .filter(p -> p.getName().equals(m.getNames().get(0)))
                 .findAny()
                 .orElse(null);
@@ -242,7 +264,7 @@ public class Game {
         }
 
         possibleNominators.remove(player);
-        possibleNominated.remove(n);
+        possibleNominations.remove(n);
         nominator = player;
         nominated = n;
 
@@ -279,17 +301,18 @@ public class Game {
                 checkWin();
 
             } else {
-                if (possibleNominators.size() > 0 && possibleNominated.size() > 0) {
+                if (possibleNominators.size() > 0 && possibleNominations.size() > 0) {
+                    nominator = null;
+                    nominated = null;
                     status = GameStatus.DAY_NOMINATE;
                 } else {
                     makeNight(false);
                 }
             }
 
-            return MoveResult.SUCCESS;
         }
 
-        return MoveResult.INVALID_STATE;
+        return MoveResult.SUCCESS;
     }
 
     /* 
@@ -309,12 +332,12 @@ public class Game {
 
     private void initNomination() {
         possibleNominators.clear();
-        possibleNominated.clear();
+        possibleNominations.clear();
         players.stream()
                 .filter(p -> p.getStatus() == PlayerStatus.ALIVE)
                 .forEach(p -> {
                     possibleNominators.add(p);
-                    possibleNominated.add(p);
+                    possibleNominations.add(p);
                 });
         nominator = null;
         nominated = null;

@@ -107,10 +107,29 @@ public class SocketHandler extends TextWebSocketHandler {
         }
     }
 
+    private boolean playerExists(GameRequest request) {
+
+        HashMap<WebSocketSession, String> players
+                = gameToSocks.get(request.getGameCode());
+
+        if (players != null) {
+            return players.values().stream()
+                    .anyMatch(name -> name.equals(request.getPlayerName()));
+        }
+
+        return false;
+    }
+
     private void connect(WebSocketSession session, GameRequest request) {
 
         // locks
         disconnect(session);
+
+        // another socket is "logged in" as the requested player
+        // reject (ignore) this request
+        if (playerExists(request)) {
+            return;
+        }
 
         String gameCode = request.getGameCode();
 
