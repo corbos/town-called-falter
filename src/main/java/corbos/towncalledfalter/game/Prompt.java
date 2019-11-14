@@ -5,6 +5,8 @@ public class Prompt {
     private final String prompt;
     private final Ability ability;
     private final int count;
+    private boolean canSelectSelf;
+
     private int version;
 
     public Prompt(String prompt, Ability ability, int count) {
@@ -31,6 +33,14 @@ public class Prompt {
 
     public int getVersion() {
         return version;
+    }
+
+    public void setCanSelectSelf(boolean canSelectSelf) {
+        this.canSelectSelf = canSelectSelf;
+    }
+
+    public boolean getCanSelectSelf() {
+        return this.canSelectSelf;
     }
 
 }

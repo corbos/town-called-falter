@@ -3,10 +3,17 @@
     const socketUrl = `ws://${window.location.host}/messages`;
 
     let ws;
-    let storage = window.sessionStorage;
 
     function byId(id) {
         return document.getElementById(id);
+    }
+
+    function firstChildElement(node) {
+        let n = node.firstChild;
+        while (n.nodeType !== Node.ELEMENT_NODE) {
+            n = n.nextSibling;
+        }
+        return n;
     }
 
     let divHome = byId("divHome");
@@ -33,60 +40,89 @@
 
     let gameHeader = byId("gameHeader");
 
+    // session management
+    let session = (function () {
+        var storage = window.sessionStorage;
+        return {
+            playerName: function (name) {
+                if (arguments.length === 0) {
+                    return storage.getItem("playerName");
+                }
+                storage.setItem("playerName", name);
+            },
+            gameCode: function (code) {
+                if (arguments.length === 0) {
+                    return storage.getItem("gameCode");
+                }
+                storage.setItem("gameCode", code);
+            },
+            moderator: function (mod) {
+                if (arguments.length === 0) {
+                    return storage.getItem("moderator") === "true";
+                }
+                storage.setItem("moderator", mod);
+            },
+            selectedPlayers: function (players) {
+                if (arguments.length === 0) {
+                    let json = storage.getItem("selectedPlayers");
+                    if (json && json.length > 0) {
+                        return JSON.parse(json);
+                    }
+                    return [];
+                }
+                storage.setItem("selectedPlayers", JSON.stringify(players));
+            }
+        };
+    })();
+
     // action panel
     let actionPanel = {
         prompt: null,
         panel: byId("divAction"),
         promptHeader: byId("promptHeader"),
         divActionPlayers: byId("divActionPlayers"),
-        hide: function () {
-            this.panel.classList.add("hidden");
-        },
-        getSelectedPlayers: function () {
-            let json = storage.getItem("selectedPlayers");
-            if (json && json.length > 0) {
-                return JSON.parse(json);
-            }
-            return [];
-        },
-        setSelectedPlayers: function (selectedPlayers) {
-            storage.setItem("selectedPlayers", JSON.stringify(selectedPlayers));
-        },
-        init: function (prompt, players) {
+        init: function (gameState) {
 
-            if (prompt) {
+            let prompt = gameState.prompt;
+
+            if (gameState.gameStatus === "NIGHT" && prompt) {
+
                 if (!this.areEqual(prompt)) {
+
+                    this.prompt = prompt;
+
                     this.promptHeader.textContent = prompt.prompt;
-                    let selectedPlayers = this.getSelectedPlayers();
+                    let selectedPlayers = session.selectedPlayers();
+
                     let html = "";
-                    players.forEach(function (p) {
+                    gameState.players.forEach(function (p) {
+
+                        if (!prompt.canSelectSelf && p.name === session.playerName()) {
+                            return;
+                        }
+
                         let selected = selectedPlayers.indexOf(p.name) >= 0 ? 'class="selected"' : '';
-                        html += `<div>
+                        html += `<div class="action-row">
                         <button onclick="routeClick(this, 'select');"${selected}>${p.name}</button>
-                    </div>`;
+                        </div>`;
                     });
                     this.divActionPlayers.innerHTML = html;
                 }
+
                 this.panel.classList.remove("hidden");
+
             } else {
-                this.hide();
+                this.panel.classList.add("hidden");
             }
         },
         areEqual: function (prompt) {
-
-            let eq = (prompt === null && this.prompt === null)
+            return (prompt === null && this.prompt === null)
                 || (prompt !== null && this.prompt !== null
                     && prompt.version === this.prompt.version);
-
-            if (!eq) {
-                this.prompt = prompt;
-            }
-
-            return eq;
         },
         select: function (btn) {
 
-            let selectedPlayers = this.getSelectedPlayers();
+            let selectedPlayers = session.selectedPlayers();
             let playerName = btn.innerText.trim();
 
             if (btn.classList.contains("selected")) {
@@ -100,24 +136,18 @@
 
             if (selectedPlayers.length === this.prompt.count) {
 
-                let msg = {
-                    playerName: storage.getItem("playerName"),
-                    gameCode: storage.getItem("gameCode"),
-                    move: {
-                        type: "USE_ABILITY",
-                        ability: this.prompt.ability,
-                        names: selectedPlayers
-                    }
-                }
-
-                ws.send(JSON.stringify(msg));
+                move({
+                    type: "USE_ABILITY",
+                    ability: this.prompt.ability,
+                    names: selectedPlayers
+                });
 
                 // clear
                 selectedPlayers = [];
                 this.prompt = null;
             }
 
-            this.setSelectedPlayers(selectedPlayers);
+            session.selectedPlayers(selectedPlayers);
         }
     };
 
@@ -127,10 +157,6 @@
         divJoin.classList.add("hidden");
         divPlay.classList.add("hidden");
         divErr.classList.add("hidden");
-    }
-
-    function isModerator() {
-        return storage.getItem("moderator") === "true";
     }
 
     function showErr(errors) {
@@ -151,21 +177,45 @@
         divErr.classList.remove("hidden");
     }
 
-    function handleNetworkErr(err) {
-        showErr(err);
+    function renderSetup(gameState) {
+        if (gameState.gameStatus === "JOINABLE" && session.moderator()) {
+            divStartSetup.classList.remove("hidden");
+            if (gameState.players.length >= 4) {
+                var node = firstChildElement(divStartSetup);
+                node.removeAttribute("disabled");
+                node.setAttribute("title", "Ready to set up!");
+            }
+        } else {
+            divStartSetup.classList.add("hidden");
+        }
+    }
+
+    function renderStart(gameState) {
+        if (gameState.gameStatus === "SETUP" && session.moderator()) {
+            divStart.classList.remove("hidden");
+        } else {
+            divStart.classList.add("hidden");
+        }
     }
 
     function renderRole(role) {
-        divRole.innerHTML = `<div><label>Role:</label>${role.name}</div>
-        <p>${role.description}</p>`;
-        divRole.classList.remove("hidden");
+        if (role) {
+            divRole.innerHTML = `<div><label>Role:</label>${role.name}</div>
+                <p>${role.description}</p>`;
+            divRole.classList.remove("hidden");
+        } else {
+            divRoster.classList.add("hidden");
+        }
     }
 
-    function renderVote(msg) {
-        if (msg.canVote) {
-            byId("divVoteMessage").innerHTML = `<div>${msg.nominator} nominated ${msg.nominated}.</div>
-            <div>Execute ${msg.nominated}?</div>`;
+    function renderVote(gameState) {
+        if (gameState.canVote) {
+            byId("divVoteMessage").innerHTML =
+                `<div>${gameState.nominator} nominated ${gameState.nominated}.</div>
+            <div>Execute ${gameState.nominated}?</div>`;
             divVote.classList.remove("hidden");
+        } else {
+            divVote.classList.add("hidden");
         }
     }
 
@@ -177,107 +227,38 @@
             });
             divMessages.innerHTML = html;
             divMessages.classList.remove("hidden");
+        } else {
+            divMessages.classList.add("hidden");
         }
     }
 
-    function render(gameState) {
-
-        // hide stuff. gotta be a better way
-        divStartSetup.classList.add("hidden");
-        divStart.classList.add("hidden");
-        divNominate.classList.add("hidden");
-        divVote.classList.add("hidden");
-        divRoster.classList.add("hidden");
-        actionPanel.hide();
-
-        let moderator = isModerator();
-        let arrange = false;
-        let kill = false;
-        let canNominate = false;
-
-        switch (gameState.gameStatus) {
-            case "JOINABLE":
-                gameHeader.textContent = "Waiting for others to join...";
-                divRoster.classList.remove("hidden");
-                if (moderator) {
-                    divStartSetup.classList.remove("hidden");
-                }
-                break;
-            case "SETUP":
-                gameHeader.textContent = "Moderator is setting up.";
-                divRoster.classList.remove("hidden");
-                if (moderator) {
-                    divStart.classList.remove("hidden");
-                    arrange = true;
-                }
-                break;
-            case "DAY_NOMINATE":
-                renderRole(gameState.role);
-                renderMessages(gameState.playerMessages);
-                gameHeader.textContent = "Day: Accepting Nominations";
-                divRoster.classList.remove("hidden");
-                document.body.className = "day";
-                kill = moderator;
-                canNominate = gameState.canNominate;
-                if (canNominate) {
-                    divNominate.classList.remove("hidden");
-                }
-                break;
-            case "DAY_VOTE":
-                renderRole(gameState.role);
-                renderMessages(gameState.playerMessages);
-                gameHeader.textContent = "Day: Vote!";
-                renderVote(gameState);
-                document.body.className = "day";
-                kill = moderator;
-                break;
-            case "NIGHT":
-                renderRole(gameState.role);
-                renderMessages(gameState.playerMessages);
-                actionPanel.init(gameState.prompt, gameState.players);
-                gameHeader.textContent = "Night";
-                divRoster.classList.remove("hidden");
-                document.body.className = "night";
-                kill = moderator;
-                break;
-            case "EVIL_WINS":
-                renderRole(gameState.role);
-                renderMessages(gameState.playerMessages);
-                gameHeader.textContent = "EVIL WINS.";
-                divRoster.classList.remove("hidden");
-                document.body.className = "evil-wins";
-                break;
-            case "GOOD_WINS":
-                renderRole(gameState.role);
-                renderMessages(gameState.playerMessages);
-                gameHeader.textContent = "GOOD WINS.";
-                divRoster.classList.remove("hidden");
-                document.body.className = "good-wins";
-                break;
-            default:
-                break;
+    function getAdminControls(player, arrange, kill) {
+        if (arrange) {
+            return `<div>
+            <a href="#nowhere" class="href-btn" onclick="return routeClick(this, 'movePlayerUp');">
+                <img src="/images/up.svg" class="connection-status" alt="move player up" title="move player up">
+            </a>
+            </div>`;
+        } else if (kill && player.status === "ALIVE") {
+            return `<div>
+            <button onclick="return routeClick(this, 'kill');">kill</button>
+            </div>`;
         }
+        return "";
+    }
 
+    function renderRoster(gameState, kill) {
 
+        let arrange = session.moderator() && gameState.gameStatus === "SETUP";
 
         let html = "";
+
         gameState.players.forEach(function (player) {
 
-            let controls = "";
+            let controls = getAdminControls(player, arrange, kill);
 
-            if (arrange) {
-                controls = `<div>
-                <a href="#nowhere" class="href-btn" onclick="return routeClick(this, 'movePlayerUp');">
-                    <img src="/images/up.svg" class="connection-status" alt="move player up" title="move player up">
-                </a>
-                </div>`;
-            } else if (kill && player.status === "ALIVE") {
-                controls = `<div>
-                <button onclick="return routeClick(this, 'kill');">kill</button>
-                </div>`;
-            }
-
-            if (canNominate && storage.getItem("playerName") != player.name
+            if (gameState.canNominate
+                && session.playerName() !== player.name
                 && gameState.possibleNominations.indexOf(player.name) >= 0) {
                 controls += `<div>
                 <button onclick="routeClick(this, 'nominate');">nominate</button>
@@ -295,13 +276,44 @@
         });
 
         divRoster.innerHTML = html;
+        divRoster.classList.remove("hidden");
+    }
+
+    let gameStatusUI = {
+        "JOINABLE": { header: "Waiting for others to join...", bodyClass: "", modCanKill: false },
+        "SETUP": { header: "Moderator is setting up.", bodyClass: "", modCanKill: false },
+        "DAY_NOMINATE": { header: "Day: Accepting Nominations", bodyClass: "day", modCanKill: true },
+        "DAY_VOTE": { header: "Day: Vote", bodyClass: "day", modCanKill: true },
+        "NIGHT": { header: "Night", bodyClass: "night", modCanKill: true },
+        "EVIL_WINS": { header: "Evil Wins", bodyClass: "evil-wins", modCanKill: false },
+        "GOOD_WINS": { header: "Good Wins", bodyClass: "good-wins", modCanKill: false }
+    };
+
+    function render(gameState) {
+
+        let settings = gameStatusUI[gameState.gameStatus];
+        gameHeader.textContent = settings.header;
+        document.body.className = settings.bodyClass;
+
+        renderSetup(gameState);
+        renderStart(gameState);
+        renderRole(gameState.role);
+        renderRoster(gameState, settings.modCanKill && session.moderator());
+        if (gameState.canNominate) {
+            divNominate.classList.remove("hidden");
+        } else {
+            divNominate.classList.add("hidden");
+        }
+        renderVote(gameState);
+        actionPanel.init(gameState);
+        renderMessages(gameState.playerMessages);
     }
 
     function ack(msg) {
 
-        storage.setItem("playerName", msg.playerName);
-        storage.setItem("gameCode", msg.gameCode);
-        storage.setItem("moderator", msg.moderator);
+        session.playerName(msg.playerName);
+        session.gameCode(msg.gameCode);
+        session.moderator(msg.moderator);
 
         spnGameCode.textContent = msg.gameCode;
         spnPlayerName.textContent = msg.playerName;
@@ -341,9 +353,18 @@
         };
     }
 
+    function move(m) {
+        let msg = {
+            playerName: session.playerName(),
+            gameCode: session.gameCode(),
+            move: m
+        }
+        ws.send(JSON.stringify(msg));
+    }
+
     function checkSession() {
-        if (storage.getItem("gameCode")) {
-            connect(storage.getItem("playerName"), storage.getItem("gameCode"));
+        if (session.gameCode()) {
+            connect(session.playerName(), session.gameCode());
         }
     }
 
@@ -393,7 +414,7 @@
                         }
                     });
                 })
-                .catch(handleNetworkErr)
+                .catch(showErr)
                 .finally(function () {
                     evt.target.removeAttribute("disabled");
                 });
@@ -447,43 +468,23 @@
                         }
                     });
                 })
-                .catch(handleNetworkErr)
+                .catch(showErr)
                 .finally(function () {
                     evt.target.removeAttribute("disabled");
                 });
         },
         startSetup: function () {
-            let msg = {
-                playerName: storage.getItem("playerName"),
-                gameCode: storage.getItem("gameCode"),
-                move: {
-                    type: "SETUP"
-                }
-            }
-            ws.send(JSON.stringify(msg));
+            move({ type: "SETUP" });
         },
         start: function () {
 
             let orderedPlayers = [];
 
             for (let i = 0; i < divRoster.childNodes.length; i++) {
-                let node = divRoster.childNodes[i].firstChild;
-                while (node.nodeType !== 1) { // find non-text node
-                    node = node.nextSibling;
-                }
+                let node = firstChildElement(divRoster.childNodes[i]);
                 orderedPlayers.push(node.textContent.trim());
             }
-
-            let msg = {
-                playerName: storage.getItem("playerName"),
-                gameCode: storage.getItem("gameCode"),
-                move: {
-                    type: "START",
-                    names: orderedPlayers
-                }
-            }
-
-            ws.send(JSON.stringify(msg));
+            move({ type: "START", names: orderedPlayers });
         }
     };
 
@@ -499,71 +500,27 @@
             }
 
             let div = href.parentElement.parentElement;
-            let node = div.firstChild;
-            while (node.nodeType !== 1) { // find non-text node
-                node = node.nextSibling;
-            }
+            let node = firstChildElement(div);
 
             console.log(node.textContent.trim());
 
-            let msg = {
-                playerName: storage.getItem("playerName"),
-                gameCode: storage.getItem("gameCode"),
-                move: {
-                    type: "KILL",
-                    names: [node.textContent.trim()]
-                }
-            }
-
-            ws.send(JSON.stringify(msg));
+            move({ type: "KILL", names: [node.textContent.trim()] });
         },
         nominate: function (btn) {
 
             let div = btn.parentElement.parentElement;
-            let node = div.firstChild;
-            while (node.nodeType !== 1) { // find non-text node
-                node = node.nextSibling;
-            }
+            let node = firstChildElement(div);
 
-            console.log(node.textContent.trim());
-
-            let msg = {
-                playerName: storage.getItem("playerName"),
-                gameCode: storage.getItem("gameCode"),
-                move: {
-                    type: "NOMINATE",
-                    names: [node.textContent.trim()]
-                }
-            }
-
-            ws.send(JSON.stringify(msg));
+            move({ type: "NOMINATE", names: [node.textContent.trim()] })
         },
-        declineNomination: function (btn) {
-            let msg = {
-                playerName: storage.getItem("playerName"),
-                gameCode: storage.getItem("gameCode"),
-                move: {
-                    type: "NOMINATE",
-                    names: []
-                }
-            }
-
-            ws.send(JSON.stringify(msg));
+        declineNomination: function (_btn) {
+            move({ type: "NOMINATE", names: [] })
         },
         select: function (btn) {
             actionPanel.select(btn);
         },
         vote: function (_btn, confirmed) {
-            let msg = {
-                playerName: storage.getItem("playerName"),
-                gameCode: storage.getItem("gameCode"),
-                move: {
-                    type: "VOTE",
-                    confirmed: confirmed
-                }
-            }
-
-            ws.send(JSON.stringify(msg));
+            move({ type: "VOTE", confirmed: confirmed });
         }
     };
 

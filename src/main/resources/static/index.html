@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Town Called Falter</title>
+    <title>A Town Called Falter</title>
     <link rel="stylesheet" href="theme.css">
 </head>
 <body>
-    <h1>Town Called Falter</h1>
+    <h1>A Town Called Falter</h1>
 
     <div id="divHome">
         <button data-action="showCreate">Create A Game</button>
@@ -66,11 +66,6 @@
             <button onclick="routeClick(this, 'declineNomination');">decline nomination</button>
         </div>
 
-        <div id="divAction" class="hidden">
-            <h3 id="promptHeader"></h3>
-            <div id="divActionPlayers"></div>
-        </div>
-
         <div id="divVote" class="hidden">
             <div id="divVoteMessage"></div>
             <div>
@@ -81,7 +76,8 @@
 
         <!-- admin -->
         <div id="divStartSetup" class="hidden">
-            <button data-action="startSetup">Start Setup</button>
+            <button data-action="startSetup" title="At least 4 players are required to setup." disabled>
+                Start Setup</button>
         </div>
         <div id="divStart" class="hidden">
             <p>
@@ -91,6 +87,11 @@
             </p>
             <button data-action="start">Start Game</button>
         </div>
+    </div>
+
+    <div id="divAction" class="hidden">
+        <h3 id="promptHeader"></h3>
+        <div id="divActionPlayers"></div>
     </div>
 
     <div id="divMessages" class="hidden">

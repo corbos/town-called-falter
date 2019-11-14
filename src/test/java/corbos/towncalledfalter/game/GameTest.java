@@ -28,7 +28,7 @@ public class GameTest {
         assertEquals(GameStatus.NIGHT, game.getStatus());
 
         Move m = new Move("klee", MoveType.USE_ABILITY);
-        m.setAbility(Ability.INTUIT);
+        m.setAbility(Ability.INSPECT);
         m.setNames(Arrays.asList("sarah"));
         game.move(m);
 
@@ -73,7 +73,7 @@ public class GameTest {
         assertEquals(PlayerStatus.DEAD, game.getPlayer("basil").getStatus());
 
         m = new Move("klee", MoveType.USE_ABILITY);
-        m.setAbility(Ability.INTUIT);
+        m.setAbility(Ability.INSPECT);
         m.setNames(Arrays.asList("umo"));
         game.move(m);
 
@@ -114,7 +114,7 @@ public class GameTest {
         assertEquals(GameStatus.NIGHT, game.getStatus());
 
         Move m = new Move("klee", MoveType.USE_ABILITY);
-        m.setAbility(Ability.INTUIT);
+        m.setAbility(Ability.INSPECT);
         m.setNames(Arrays.asList("sarah"));
 
         game.move(m);
@@ -144,8 +144,8 @@ public class GameTest {
             "dorn", "piet", "zuzu"
         };
 
-        Random rand = new Random(1);
-        Game result = new Game("code", moderator, rand);
+        Randomizer.setRandom(new Random(1));
+        Game result = new Game("code", moderator);
 
         for (int i = 0; i < playerCount - 1; i++) {
             result.move(new Move(names[i], MoveType.JOIN));
@@ -157,7 +157,7 @@ public class GameTest {
                 .map(p -> p.getName())
                 .collect(Collectors.toList());
 
-        Collections.shuffle(sortedNames, rand);
+        Collections.shuffle(sortedNames, Randomizer.getRandom());
 
         Move startMove = new Move(moderator, MoveType.START);
         startMove.getNames().addAll(sortedNames);

@@ -9,6 +9,7 @@ public class Move {
     private MoveType type;
     private Ability ability;
     private List<String> names = new ArrayList<>();
+    private final ArrayList<Player> players = new ArrayList<>();
     private boolean confirmed;
 
     // empty ctor required for serialization
@@ -61,6 +62,16 @@ public class Move {
 
     public void setConfirmed(boolean confirmed) {
         this.confirmed = confirmed;
+    }
+
+    public List<Player> getPlayers() {
+        return new ArrayList<>(players);
+    }
+
+    public void add(Player player) {
+        if (player != null && !players.contains(player)) {
+            players.add(player);
+        }
     }
 
 }

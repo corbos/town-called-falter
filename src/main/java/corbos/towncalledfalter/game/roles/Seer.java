@@ -6,12 +6,11 @@ import corbos.towncalledfalter.game.Game;
 import corbos.towncalledfalter.game.Move;
 import corbos.towncalledfalter.game.Player;
 import corbos.towncalledfalter.game.Prompt;
-import java.util.List;
 
 public class Seer extends Role {
 
     public Seer() {
-        super(Alignment.GOOD);
+        super(Alignment.GOOD, Alignment.GOOD);
     }
 
     @Override
@@ -27,28 +26,24 @@ public class Seer extends Role {
 
     @Override
     public void queueNight(Game game, Player playter, boolean firstNight) {
-        queue(new Prompt("Choose a player to inspect.", Ability.INTUIT, 1));
+        queue(new Prompt("Choose a player to inspect.", Ability.INSPECT, 1));
     }
 
     @Override
     public void processMove(Move m, Game game, Player player) {
 
-        if (!moveIsMatch(m)) {
+        if (!moveIsMatch(m, game)) {
             return;
         }
 
-        // no player 
-        Player p = game.getPlayer(m.getNames().get(0));
-        if (p == null) {
-            return;
-        }
+        Player p = m.getPlayers().get(0);
 
         dequeue();
 
         player.addMessage(
                 String.format("%s is %s.",
                         p.getName(),
-                        p.getRole().getAlignment()));
+                        p.getRole().getVisibleAlignment()));
     }
 
 }

@@ -3,7 +3,6 @@ package corbos.towncalledfalter.network;
 import corbos.towncalledfalter.game.Game;
 import corbos.towncalledfalter.game.GameStatus;
 import corbos.towncalledfalter.game.Player;
-import corbos.towncalledfalter.game.PlayerStatus;
 import corbos.towncalledfalter.game.Prompt;
 import corbos.towncalledfalter.game.roles.Role;
 import java.util.HashMap;
@@ -79,8 +78,7 @@ public class GameStateMessage extends BaseMessage {
 
     // vote-stuff
     public boolean getCanVote() {
-        return player.getStatus() == PlayerStatus.ALIVE
-                && game.canVote(player);
+        return game.canVote(player);
     }
 
     private PlayerState playerToState(Player player) {

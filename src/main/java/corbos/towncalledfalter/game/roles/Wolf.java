@@ -16,7 +16,7 @@ public class Wolf extends Role {
     private final static HashSet<Player> killVotes = new HashSet<>();
 
     public Wolf() {
-        super(Alignment.EVIL);
+        super(Alignment.EVIL, Alignment.EVIL);
     }
 
     @Override
@@ -32,15 +32,18 @@ public class Wolf extends Role {
     @Override
     public void processMove(Move m, Game game, Player player) {
 
-        if (!moveIsMatch(m)) {
+        // first night, the wolf does a consciousness check.
+        if (m.getAbility() == Ability.NONE) {
+            super.processMove(m, game, player);
             return;
         }
 
-        // no player
-        Player p = game.getPlayer(m.getNames().get(0));
-        if (p == null) {
+        // otherwise they do wolf-y stuff.
+        if (!moveIsMatch(m, game)) {
             return;
         }
+
+        Player p = m.getPlayers().get(0);
 
         killVotes.add(p);
         dequeue();
@@ -76,8 +79,10 @@ public class Wolf extends Role {
 
         if (firstNight) {
 
+            super.queueNight(game, player, firstNight);
+
             List<String> otherEvil = game.getPlayers().stream()
-                    .filter(p -> p.getRole().getAlignment() == Alignment.EVIL)
+                    .filter(p -> p.getRole().getActualAlignment() == Alignment.EVIL)
                     .filter(p -> !p.getName().equals(player.getName()))
                     .map(p -> p.getName())
                     .collect(Collectors.toList());
