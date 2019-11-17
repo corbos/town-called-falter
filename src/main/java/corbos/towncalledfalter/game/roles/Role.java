@@ -18,6 +18,7 @@ public abstract class Role {
 
     private final Alignment visibleAlignment;
     private final Alignment actualAlignment;
+    private final RoleLabel label;
 
     private final LinkedList<Prompt> queue = new LinkedList<>();
 
@@ -25,7 +26,9 @@ public abstract class Role {
 
     private int promptVersion;
 
-    public Role(Alignment visibleAlignment, Alignment actualAlignment) {
+    public Role(RoleLabel label,
+            Alignment visibleAlignment, Alignment actualAlignment) {
+        this.label = label;
         this.visibleAlignment = visibleAlignment;
         this.actualAlignment = actualAlignment;
     }
@@ -51,9 +54,17 @@ public abstract class Role {
         return queue.remove();
     }
 
-    public abstract String getName();
+    public final String getName() {
+        return label.getName();
+    }
 
-    public abstract String getDescription();
+    public final String getDescription() {
+        return label.getDescription();
+    }
+
+    public final RoleLabel getLabel() {
+        return label;
+    }
 
     /**
      * Each night, the game queues actions for special roles. That makes it easy
@@ -96,7 +107,8 @@ public abstract class Role {
 
         boolean isMatch = current != null
                 && current.getAbility() == m.getAbility()
-                && current.getCount() == m.getNames().size();
+                && ((current.isDismissable() && m.getNames().isEmpty())
+                || current.getCount() == m.getNames().size());
 
         if (isMatch) {
             for (String name : m.getNames()) {
@@ -112,19 +124,41 @@ public abstract class Role {
         return isMatch;
     }
 
-    public void processMove(Move m, Game game, Player player) {
+    /**
+     * In each role with specific powers, three things happen:
+     * 1.Confirm the move matches the currently queued move.
+     * 2. Do your thing.
+     * 3. dequeue
+     *
+     * Only step 2 is unique per role so we make steps 1 and 3 a shared implementation.
+     *
+     * @param m
+     * @param game
+     * @param player
+     * @return
+     */
+    public final Move processMove(Move m, Game game, Player player) {
 
         if (!moveIsMatch(m, game)) {
-            return;
+            return null;
         }
 
+        // hole-in-the-middle
+        Move result = onMoveSuccess(m, game, player);
+
+        dequeue();
+
+        return result;
+
+    }
+
+    public Move onMoveSuccess(Move m, Game game, Player player) {
         Player p = m.getPlayers().get(0);
         if (!answers.contains(p)) {
             player.setStatus(PlayerStatus.DEAD);
         }
-
-        dequeue();
         answers.clear();
+        return null;
     }
 
     private void queueAdjacent(Game game) {
@@ -149,19 +183,20 @@ public abstract class Role {
         List<Player> players = game.getPlayers();
         int index = Randomizer.getRandom().nextInt(players.size());
 
-        char firstLetter = Character.toUpperCase(
-                players.get(index).getName().charAt(0));
+        char firstLetter = players.get(index).getName().charAt(0);
 
         String msg = String.format(
                 "Pick one player whose names starts with %s.",
                 firstLetter);
+
+        char firstUpper = Character.toUpperCase(firstLetter);
 
         Prompt ping = new Prompt(msg, Ability.NONE, 1);
         ping.setCanSelectSelf(true);
         queue(ping);
 
         players.stream()
-                .filter(p -> Character.toUpperCase(p.getName().charAt(0)) == firstLetter)
+                .filter(p -> Character.toUpperCase(p.getName().charAt(0)) == firstUpper)
                 .forEach(answers::add);
     }
 

@@ -21,6 +21,9 @@ public class Game {
 
     // voting plumbing
     private final HashMap<Player, Move> votes = new HashMap<>();
+
+    // night status
+    private final HashMap<Player, List<Ability>> night = new HashMap<>();
     
     public Game(String code, String moderatorName) {
         this.code = code;
@@ -194,13 +197,30 @@ public class Game {
     
     private MoveResult useAbility(Move m, Player player) {
         
-        player.getRole().processMove(m, this, player);
+        Move result = player.getRole().processMove(m, this, player);
+
+        // some abilities affect others so we must track over time
+        // PROTECT stops KILL, etc...
+        // then make decisions after everyone is done.
+        if (result != null) {
+            for (Player p : result.getPlayers()) {
+                List<Ability> nightEffects = night.get(p);
+                if (nightEffects == null) {
+                    nightEffects = new ArrayList<>();
+                }
+                nightEffects.add(result.getAbility());
+                night.put(p, nightEffects);
+            }
+        }
 
         // everyone is done
         // currently can only use ability at night 
         // so this can only switch to day
         if (players.stream()
                 .allMatch(p -> p.getRole().currentPrompt() == null)) {
+            
+            applyNightEffects();
+            
             initNomination();
             status = GameStatus.DAY_NOMINATE;
             checkWin();
@@ -345,6 +365,33 @@ public class Game {
 
         // update game status
         status = GameStatus.NIGHT;
+    }
+    
+    private void applyNightEffects() {
+        
+        for (Player p : night.keySet()) {
+            
+            List<Ability> nightEffects = night.get(p);
+            if (nightEffects == null) {
+                continue;
+            }
+            
+            boolean hasProtection = false;
+            boolean hasKill = false;
+            for (Ability a : nightEffects) {
+                if (a == Ability.PROTECT) {
+                    hasProtection = true;
+                } else if (a == Ability.KILL) {
+                    hasKill = true;
+                }
+            }
+            
+            if (hasKill && !hasProtection) {
+                p.setStatus(PlayerStatus.DEAD);
+            }
+        }
+        
+        night.clear();
     }
     
     private void checkWin() {

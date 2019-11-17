@@ -13,45 +13,33 @@ import java.util.stream.Collectors;
 
 public class Wolf extends Role {
 
-    private final static HashSet<Player> killVotes = new HashSet<>();
+    private final HashSet<Player> killVotes;
 
-    public Wolf() {
-        super(Alignment.EVIL, Alignment.EVIL);
+    public Wolf(HashSet<Player> sharedVotes) {
+        super(RoleLabel.WEREWOLF, Alignment.EVIL, Alignment.EVIL);
+        killVotes = sharedVotes;
     }
 
     @Override
-    public String getName() {
-        return "Werewolf";
-    }
-
-    @Override
-    public String getDescription() {
-        return "You are a werewolf. You kill people at night.";
-    }
-
-    @Override
-    public void processMove(Move m, Game game, Player player) {
+    public Move onMoveSuccess(Move m, Game game, Player player) {
 
         // first night, the wolf does a consciousness check.
         if (m.getAbility() == Ability.NONE) {
-            super.processMove(m, game, player);
-            return;
+            return super.onMoveSuccess(m, game, player);
         }
 
-        // otherwise they do wolf-y stuff.
-        if (!moveIsMatch(m, game)) {
-            return;
-        }
-
+        // otherwise they do wolf-y stuff.  
         Player p = m.getPlayers().get(0);
 
         killVotes.add(p);
-        dequeue();
 
+        // since our prompt is dequeued after onMoveSuccess,
+        // we have to ignore ourselves
         List<Player> wolves = game.getPlayers().stream()
                 .filter(i -> {
-                    return i.getRole() instanceof Wolf
-                            && i.getStatus() == PlayerStatus.ALIVE;
+                    return i.getRole().getLabel() == RoleLabel.WEREWOLF
+                            && i.getStatus() == PlayerStatus.ALIVE
+                            && i != player;
                 })
                 .collect(Collectors.toList());
 
@@ -59,12 +47,16 @@ public class Wolf extends Role {
                 .allMatch(i -> i.getRole().currentPrompt() == null);
 
         if (!allVoted) {
-            return;
+            return null;
         }
 
         if (killVotes.size() == 1) {
-            p.setStatus(PlayerStatus.DEAD);
+            return m;
         } else {
+            // we ignore ourselves. 
+            // now become part of the wolf pack again
+            // kinda gross, but ¯\_(ツ)_/¯
+            wolves.add(player);
             for (Player wolf : wolves) {
                 wolf.getRole().queue(
                         new Prompt("Votes were not unanimous. Choose a player to kill.", Ability.KILL, 1));
@@ -72,6 +64,7 @@ public class Wolf extends Role {
             killVotes.clear();
         }
 
+        return null;
     }
 
     @Override

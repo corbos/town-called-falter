@@ -9,12 +9,12 @@
 <body>
     <h1>A Town Called Falter</h1>
 
-    <div id="divHome">
+    <div id="divHome" class="pad-left">
         <button data-action="showCreate">Create A Game</button>
         <button data-action="showJoin">Join Game</button>
     </div>
 
-    <div id="divCreate" class="hidden">
+    <div id="divCreate" class="hidden pad-left">
         <form onsubmit="return false;">
             <h2>Create A Game</h2>
             <div>
@@ -28,7 +28,7 @@
         </form>
     </div>
 
-    <div id="divJoin" class="hidden">
+    <div id="divJoin" class="hidden pad-left">
         <form onsubmit="return false;">
             <h2>Join A Game</h2>
             <div>
@@ -47,26 +47,31 @@
     </div>
 
     <div id="divPlay" class="hidden">
-        <div>
+        <div class="pad-left">
             <label>Game Code:</label><span id="spnGameCode">1234</span>
         </div>
-        <div>
+        <div class="pad-left">
             <label>Player:</label><span id="spnPlayerName">Player Name</span>
         </div>
         <div id="divRole" class="hidden">
 
         </div>
 
-        <h2 id="gameHeader">Waiting for others to join...</h2>
-        <div id="divRoster">
-
+        <div id="divHeaders" class="pad-left">
+            <h2 id="gameHeader">Waiting for others to join...</h2>
+            <h3 id="promptHeader" class="hidden">Do your action.</h3>
         </div>
 
-        <div id="divNominate" class="hidden">
-            <button onclick="routeClick(this, 'declineNomination');">decline nomination</button>
+        <table id="roster">
+            <tbody>
+            </tbody>
+        </table>
+
+        <div id="decline" class="hidden pad-left">
+            <button onclick="routeClick(this, 'decline');">decline</button>
         </div>
 
-        <div id="divVote" class="hidden">
+        <div id="divVote" class="hidden pad-left">
             <div id="divVoteMessage"></div>
             <div>
                 <button onclick="routeClick(this, 'vote', true);">Yes</button>
@@ -75,11 +80,11 @@
         </div>
 
         <!-- admin -->
-        <div id="divStartSetup" class="hidden">
+        <div id="divStartSetup" class="hidden pad-left">
             <button data-action="startSetup" title="At least 4 players are required to setup." disabled>
                 Start Setup</button>
         </div>
-        <div id="divStart" class="hidden">
+        <div id="divStart" class="hidden pad-left">
             <p>
                 Use the arrows to order players based on seating.
                 The last and first players "loop around".
@@ -89,14 +94,7 @@
         </div>
     </div>
 
-    <div id="divAction" class="hidden">
-        <h3 id="promptHeader"></h3>
-        <div id="divActionPlayers"></div>
-    </div>
-
-    <div id="divMessages" class="hidden">
-
-    </div>
+    <div id="divMessages" class="hidden pad-left"></div>
 
     <div id="divErr" class="panel-err hidden">
         <ul id="ulErrors">

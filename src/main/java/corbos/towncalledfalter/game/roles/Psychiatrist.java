@@ -10,19 +10,7 @@ import corbos.towncalledfalter.game.Prompt;
 public class Psychiatrist extends Role {
 
     public Psychiatrist() {
-        super(Alignment.GOOD, Alignment.GOOD);
-    }
-
-    @Override
-    public String getName() {
-        return "Psychiatrist";
-    }
-
-    @Override
-    public String getDescription() {
-        return "The Psychiatrist diagnoses other players. "
-                + "They can tell if a player's perceived alignment matches "
-                + "their actual alignment.";
+        super(RoleLabel.PSYCHIATRIST, Alignment.GOOD, Alignment.GOOD);
     }
 
     @Override
@@ -32,11 +20,7 @@ public class Psychiatrist extends Role {
     }
 
     @Override
-    public void processMove(Move m, Game game, Player player) {
-
-        if (!moveIsMatch(m, game)) {
-            return;
-        }
+    public Move onMoveSuccess(Move m, Game game, Player player) {
 
         Player patient = m.getPlayers().get(0);
         Role r = patient.getRole();
@@ -47,7 +31,8 @@ public class Psychiatrist extends Role {
                         r.getVisibleAlignment() == r.getActualAlignment() ? "is NOT" : "IS"
                 ));
 
-        dequeue();
+        return null;
+
     }
 
 }

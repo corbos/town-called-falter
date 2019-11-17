@@ -6,11 +6,6 @@ body {
     color: #444;
 }
 
-body>div {
-    padding-left: 10px;
-    margin-bottom: 5px;
-}
-
 h1 {
     padding-left: 10px;
 }
@@ -19,7 +14,7 @@ h1,
 h2,
 h3 {
     line-height: 1;
-    margin-bottom: 10px;
+    margin: 15px 0px;
 }
 
 form>div {
@@ -75,8 +70,20 @@ a:hover {
     text-decoration: none;
 }
 
+table {
+    border-collapse: collapse;
+}
+
+td {
+    padding: 2px 5px;
+}
+
 .hidden {
     display: none;
+}
+
+.pad-left {
+    padding-left: 12px;
 }
 
 .panel-err {
@@ -84,15 +91,6 @@ a:hover {
     background-color: #f8d7da;
     border-color: #f5c6cb;
     padding: 5px;
-}
-
-.player {
-    display: flex;
-    align-items: baseline;
-}
-
-.player>div {
-    padding: 5px 10px 5px 0px;
 }
 
 .connection-status {
@@ -103,8 +101,20 @@ a:hover {
     text-decoration: none;
 }
 
-.action-row{
-    margin-bottom: 5px;
+.role-good {
+    background-color: #eee;
+    color: #444;
+    border: 2px solid #163bb6;
+    border-radius: 15px;
+    padding: 10px 12px;
+}
+
+.role-evil {
+    background-color: #eee;
+    color: #444;
+    border: 2px solid #9c2b31;
+    border-radius: 15px;
+    padding: 10px 12px;
 }
 
 .day {
@@ -131,13 +141,15 @@ a:hover {
 }
 
 .good-wins {
-    background-color: #a5ddfc;
+    background-color: #87ceeb;
+    color: #fff;
 }
 
-#divAction {
-    background-color: #d8d8d8;
-    color: #444;
-    border: 2px solid #3b3b3b;
-    border-radius: 8px;
-    padding-bottom: 15px;
+#divHeaders {
+    display: flex;
+    align-items: baseline;
+}
+
+#divHeaders>h2 {
+    margin-right: 10px;
 }

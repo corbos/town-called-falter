@@ -10,18 +10,7 @@ import corbos.towncalledfalter.game.Prompt;
 public class Seer extends Role {
 
     public Seer() {
-        super(Alignment.GOOD, Alignment.GOOD);
-    }
-
-    @Override
-    public String getName() {
-        return "Seer";
-    }
-
-    @Override
-    public String getDescription() {
-        return "The Seer wakes up at night "
-                + "and can intuit the alignment of any one player.";
+        super(RoleLabel.SEER, Alignment.GOOD, Alignment.GOOD);
     }
 
     @Override
@@ -30,20 +19,16 @@ public class Seer extends Role {
     }
 
     @Override
-    public void processMove(Move m, Game game, Player player) {
-
-        if (!moveIsMatch(m, game)) {
-            return;
-        }
+    public Move onMoveSuccess(Move m, Game game, Player player) {
 
         Player p = m.getPlayers().get(0);
-
-        dequeue();
 
         player.addMessage(
                 String.format("%s is %s.",
                         p.getName(),
                         p.getRole().getVisibleAlignment()));
+
+        return null;
     }
 
 }

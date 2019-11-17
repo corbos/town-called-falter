@@ -8,6 +8,7 @@
         return document.getElementById(id);
     }
 
+    // given a node, finds the first non-text child.
     function firstChildElement(node) {
         let n = node.firstChild;
         while (n.nodeType !== Node.ELEMENT_NODE) {
@@ -21,11 +22,12 @@
     let divJoin = byId("divJoin");
     let divPlay = byId("divPlay");
     let divRole = byId("divRole");
-    let divRoster = byId("divRoster");
+    let roster = byId("roster");
+    let rosterBody = firstChildElement(roster);
     let divStartSetup = byId("divStartSetup");
     let divStart = byId("divStart");
     let divErr = byId("divErr");
-    let divNominate = byId("divNominate");
+    let decline = byId("decline");
     let divVote = byId("divVote");
     let divMessages = byId("divMessages");
 
@@ -39,10 +41,20 @@
     let spnPlayerName = byId("spnPlayerName");
 
     let gameHeader = byId("gameHeader");
+    let promptHeader = byId("promptHeader");
 
     // session management
     let session = (function () {
+
         var storage = window.sessionStorage;
+        var currentPrompt = null;
+
+        function promptsEqual(value) {
+            return (value === null && currentPrompt === null)
+                || (value !== null && currentPrompt !== null
+                    && value.version === currentPrompt.version);
+        }
+
         return {
             playerName: function (name) {
                 if (arguments.length === 0) {
@@ -71,85 +83,19 @@
                     return [];
                 }
                 storage.setItem("selectedPlayers", JSON.stringify(players));
+            },
+            prompt: function (value) {
+
+                if (arguments.length === 0) {
+                    return currentPrompt;
+                }
+
+                if (!promptsEqual(value)) {
+                    currentPrompt = value;
+                }
             }
         };
     })();
-
-    // action panel
-    let actionPanel = {
-        prompt: null,
-        panel: byId("divAction"),
-        promptHeader: byId("promptHeader"),
-        divActionPlayers: byId("divActionPlayers"),
-        init: function (gameState) {
-
-            let prompt = gameState.prompt;
-
-            if (gameState.gameStatus === "NIGHT" && prompt) {
-
-                if (!this.areEqual(prompt)) {
-
-                    this.prompt = prompt;
-
-                    this.promptHeader.textContent = prompt.prompt;
-                    let selectedPlayers = session.selectedPlayers();
-
-                    let html = "";
-                    gameState.players.forEach(function (p) {
-
-                        if (!prompt.canSelectSelf && p.name === session.playerName()) {
-                            return;
-                        }
-
-                        let selected = selectedPlayers.indexOf(p.name) >= 0 ? 'class="selected"' : '';
-                        html += `<div class="action-row">
-                        <button onclick="routeClick(this, 'select');"${selected}>${p.name}</button>
-                        </div>`;
-                    });
-                    this.divActionPlayers.innerHTML = html;
-                }
-
-                this.panel.classList.remove("hidden");
-
-            } else {
-                this.panel.classList.add("hidden");
-            }
-        },
-        areEqual: function (prompt) {
-            return (prompt === null && this.prompt === null)
-                || (prompt !== null && this.prompt !== null
-                    && prompt.version === this.prompt.version);
-        },
-        select: function (btn) {
-
-            let selectedPlayers = session.selectedPlayers();
-            let playerName = btn.innerText.trim();
-
-            if (btn.classList.contains("selected")) {
-                let index = selectedPlayers.indexOf(playerName);
-                selectedPlayers.splice(index, 1);
-                btn.classList.remove("selected");
-            } else {
-                btn.classList.add("selected");
-                selectedPlayers.push(playerName);
-            }
-
-            if (selectedPlayers.length === this.prompt.count) {
-
-                move({
-                    type: "USE_ABILITY",
-                    ability: this.prompt.ability,
-                    names: selectedPlayers
-                });
-
-                // clear
-                selectedPlayers = [];
-                this.prompt = null;
-            }
-
-            session.selectedPlayers(selectedPlayers);
-        }
-    };
 
     function hideAll() {
         divHome.classList.add("hidden");
@@ -200,11 +146,17 @@
 
     function renderRole(role) {
         if (role) {
+
             divRole.innerHTML = `<div><label>Role:</label>${role.name}</div>
-                <p>${role.description}</p>`;
-            divRole.classList.remove("hidden");
+                <div>${role.description}</div>`;
+
+            if (role.actualAlignment === "GOOD") {
+                divRole.className = "role-good";
+            } else if (role.actualAlignment === "EVIL") {
+                divRole.className = "role-evil";
+            }
         } else {
-            divRoster.classList.add("hidden");
+            roster.className = "hidden";
         }
     }
 
@@ -214,7 +166,9 @@
                 `<div>${gameState.nominator} nominated ${gameState.nominated}.</div>
             <div>Execute ${gameState.nominated}?</div>`;
             divVote.classList.remove("hidden");
+            roster.classList.add("hidden");
         } else {
+            roster.classList.remove("hidden");
             divVote.classList.add("hidden");
         }
     }
@@ -234,15 +188,19 @@
 
     function getAdminControls(player, arrange, kill) {
         if (arrange) {
-            return `<div>
+            return `<td>
             <a href="#nowhere" class="href-btn" onclick="return routeClick(this, 'movePlayerUp');">
                 <img src="/images/up.svg" class="connection-status" alt="move player up" title="move player up">
             </a>
-            </div>`;
-        } else if (kill && player.status === "ALIVE") {
-            return `<div>
-            <button onclick="return routeClick(this, 'kill');">kill</button>
-            </div>`;
+            </td>`;
+        } else if (kill) {
+            if (player.status === "ALIVE") {
+                return `<td>
+                <button onclick="return routeClick(this, 'kill');">kill</button>
+                </td>`;
+            } else {
+                return '<td>&nbsp;</td>';
+            }
         }
         return "";
     }
@@ -250,6 +208,8 @@
     function renderRoster(gameState, kill) {
 
         let arrange = session.moderator() && gameState.gameStatus === "SETUP";
+        let prompt = gameState.prompt;
+        let selectedPlayers = session.selectedPlayers();
 
         let html = "";
 
@@ -257,26 +217,39 @@
 
             let controls = getAdminControls(player, arrange, kill);
 
-            if (gameState.canNominate
-                && session.playerName() !== player.name
-                && gameState.possibleNominations.indexOf(player.name) >= 0) {
-                controls += `<div>
-                <button onclick="routeClick(this, 'nominate');">nominate</button>
-                </div>`;
+            if (gameState.canNominate) {
+                if (session.playerName() !== player.name
+                    && gameState.possibleNominations.indexOf(player.name) >= 0) {
+                    controls += `<td>
+                    <button onclick="routeClick(this, 'nominate');">nominate</button>
+                    </td>`;
+                } else {
+                    controls += '<td>&nbsp;</td>';
+                }
+            } else if (prompt) {
+
+                if (prompt.canSelectSelf || player.name !== session.playerName()) {
+                    let selected = selectedPlayers.indexOf(player.name) >= 0 ? 'class="selected"' : '';
+                    controls += `<td>
+                    <button onclick="routeClick(this, 'select');"${selected}>Select</button>
+                    </td>`;
+                } else {
+                    controls += '<td>&nbsp;</td>';
+                }
             }
 
-            html += `<div class="player">
-                <div>${player.name}</div>
-                <div>
+            html += `<tr>
+                <td>${player.name}</td>
+                <td>
                     <img src="/images/${player.connected ? "connected.svg" : "disconnected.svg"}" class="connection-status">
-                </div>
-                <div>${player.status}</div>
+                </td>
+                <td>${player.status}</td>
                 ${controls}
-            </div>`;
+                </tr>`;
         });
 
-        divRoster.innerHTML = html;
-        divRoster.classList.remove("hidden");
+        rosterBody.innerHTML = html;
+        roster.classList.remove("hidden");
     }
 
     let gameStatusUI = {
@@ -299,13 +272,23 @@
         renderStart(gameState);
         renderRole(gameState.role);
         renderRoster(gameState, settings.modCanKill && session.moderator());
-        if (gameState.canNominate) {
-            divNominate.classList.remove("hidden");
+
+        if (gameState.canNominate
+            || (gameState.prompt && gameState.prompt.dismissable)) {
+            decline.classList.remove("hidden");
         } else {
-            divNominate.classList.add("hidden");
+            decline.classList.add("hidden");
         }
+
+        session.prompt(gameState.prompt);
+        if (gameState.prompt) {
+            promptHeader.innerText = " - " + gameState.prompt.prompt;
+            promptHeader.classList.remove("hidden");
+        } else {
+            promptHeader.classList.add("hidden");
+        }
+
         renderVote(gameState);
-        actionPanel.init(gameState);
         renderMessages(gameState.playerMessages);
     }
 
@@ -480,8 +463,8 @@
 
             let orderedPlayers = [];
 
-            for (let i = 0; i < divRoster.childNodes.length; i++) {
-                let node = firstChildElement(divRoster.childNodes[i]);
+            for (let i = 0; i < rosterBody.childNodes.length; i++) {
+                let node = firstChildElement(rosterBody.childNodes[i]);
                 orderedPlayers.push(node.textContent.trim());
             }
             move({ type: "START", names: orderedPlayers });
@@ -490,8 +473,8 @@
 
     let clickHandlers = {
         movePlayerUp: function (href) {
-            let div = href.parentElement.parentElement;
-            div.parentElement.insertBefore(div, div.previousSibling);
+            let tr = href.parentElement.parentElement;
+            tr.parentElement.insertBefore(tr, tr.previousSibling);
         },
         kill: function (href) {
 
@@ -513,11 +496,50 @@
 
             move({ type: "NOMINATE", names: [node.textContent.trim()] })
         },
-        declineNomination: function (_btn) {
-            move({ type: "NOMINATE", names: [] })
+        decline: function (_btn) {
+            let prompt = session.prompt();
+            if (prompt) {
+                move({
+                    type: "USE_ABILITY",
+                    ability: prompt.ability,
+                    names: []
+                });
+            } else {
+                move({ type: "NOMINATE", names: [] })
+            }
         },
         select: function (btn) {
-            actionPanel.select(btn);
+
+            let selectedPlayers = session.selectedPlayers();
+            let prompt = session.prompt();
+
+            let div = btn.parentElement.parentElement;
+            let node = firstChildElement(div);
+            let playerName = node.textContent.trim();
+
+            if (btn.classList.contains("selected")) {
+                let index = selectedPlayers.indexOf(playerName);
+                selectedPlayers.splice(index, 1);
+                btn.classList.remove("selected");
+            } else {
+                btn.classList.add("selected");
+                selectedPlayers.push(playerName);
+            }
+
+            if (selectedPlayers.length === prompt.count) {
+
+                move({
+                    type: "USE_ABILITY",
+                    ability: prompt.ability,
+                    names: selectedPlayers
+                });
+
+                // clear
+                selectedPlayers = [];
+                session.prompt(null);
+            }
+
+            session.selectedPlayers(selectedPlayers);
         },
         vote: function (_btn, confirmed) {
             move({ type: "VOTE", confirmed: confirmed });

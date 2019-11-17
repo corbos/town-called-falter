@@ -6,6 +6,7 @@ public class Prompt {
     private final Ability ability;
     private final int count;
     private boolean canSelectSelf;
+    private boolean dismissable;
 
     private int version;
 
@@ -41,6 +42,14 @@ public class Prompt {
 
     public boolean getCanSelectSelf() {
         return this.canSelectSelf;
+    }
+
+    public boolean isDismissable() {
+        return dismissable;
+    }
+
+    public void setDismissable(boolean dismissable) {
+        this.dismissable = dismissable;
     }
 
 }
