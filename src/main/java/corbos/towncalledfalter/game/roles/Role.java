@@ -126,7 +126,7 @@ public abstract class Role {
 
     /**
      * In each role with specific powers, three things happen:
-     * 1.Confirm the move matches the currently queued move.
+     * 1. Confirm the move matches the currently queued move.
      * 2. Do your thing.
      * 3. dequeue
      *

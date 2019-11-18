@@ -14,7 +14,7 @@ public class GamePool {
     private static final Random RAND = new Random();
     // no 0/O to avoid confusion. maybe remove 1/l?
     private static final String ALPHABET
-            = "123456789ABCDEFGHIJKLMNPQRSTUVWXYZ!@#$%&*+=?";
+            = "123456789ABCDEFGHIJKLMNPQRSTUVWXYZ!@#$%*+=?";
     private static final int CODE_LENGTH = 4;
 
     private final HashMap<String, Game> games = new HashMap<>();
@@ -56,7 +56,7 @@ public class GamePool {
                     CODE_LENGTH));
         }
 
-        Game game = games.get(code);
+        Game game = games.get(code.toUpperCase());
         if (game == null) {
             return Result.notFound(String.format("game %s not found", code));
         }

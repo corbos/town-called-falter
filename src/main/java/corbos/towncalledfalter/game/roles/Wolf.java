@@ -53,8 +53,8 @@ public class Wolf extends Role {
         if (killVotes.size() == 1) {
             return m;
         } else {
-            // we ignore ourselves. 
-            // now become part of the wolf pack again
+            // we ignored ourselves. 
+            // now we have to become part of the wolf pack again
             // kinda gross, but ¯\_(ツ)_/¯
             wolves.add(player);
             for (Player wolf : wolves) {

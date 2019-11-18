@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class Game {
-    
+
     private final String code;
     private final Player moderator;
     private ArrayList<Player> players = new ArrayList<>();
@@ -22,62 +22,62 @@ public class Game {
     // voting plumbing
     private final HashMap<Player, Move> votes = new HashMap<>();
 
-    // night status
+    // per-player night status
     private final HashMap<Player, List<Ability>> night = new HashMap<>();
-    
+
     public Game(String code, String moderatorName) {
         this.code = code;
         moderator = new Player(moderatorName);
         players.add(moderator);
     }
-    
+
     public String getCode() {
         return code;
     }
-    
+
     public GameStatus getStatus() {
         return status;
     }
-    
+
     public List<Player> getPlayers() {
         return new ArrayList<>(players);
     }
-    
+
     public Player getPlayer(String playerName) {
         return players.stream()
                 .filter(p -> p.getName().equals(playerName))
                 .findAny()
                 .orElse(null);
     }
-    
+
     public boolean isModerator(String playerName) {
         return moderator.getName().equals(playerName);
     }
-    
+
     public boolean canNominate(Player player) {
         return status == GameStatus.DAY_NOMINATE
                 && player.getStatus() == PlayerStatus.ALIVE
                 && possibleNominators.contains(player);
     }
-    
+
     public List<Player> getPossibleNominations() {
         return possibleNominations;
     }
-    
+
     public Player getNominator() {
         return nominator;
     }
-    
+
     public Player getNominated() {
         return nominated;
     }
-    
+
     public boolean canVote(Player player) {
         return status == GameStatus.DAY_VOTE
                 && player.getStatus() == PlayerStatus.ALIVE
                 && votes.get(player) == null;
     }
-    
+
     public synchronized MoveResult move(Move m) {
 
         // always need to know the player
@@ -106,7 +106,7 @@ public class Game {
         if (m.getType().requiresModerator() && player != moderator) {
             return MoveResult.NOT_AUTHORIZED;
         }
-        
+
         switch (m.getType()) {
             case SETUP:
                 return setup();
@@ -123,38 +123,38 @@ public class Game {
             default:
                 return MoveResult.INVALID_STATE;
         }
-        
+
     }
 
     /* 
     Move handlers    
      */
     private MoveResult join(String playerName) {
-        
+
         if (getPlayer(playerName) != null) {
             return MoveResult.INVALID_STATE;
         }
-        
+
         players.add(new Player(playerName));
         return MoveResult.SUCCESS;
     }
-    
+
     private MoveResult setup() {
-        
+
         if (players.size() < 4) { // need at least 4 players
             return MoveResult.INVALID_STATE;
         }
-        
+
         status = GameStatus.SETUP;
         return MoveResult.SUCCESS;
     }
-    
+
     private MoveResult start(Move m) {
-        
+
         if (!playersMatch(m.getNames())) {
             return MoveResult.INVALID_STATE;
         }
-        
+
         ArrayList<Player> sorted = new ArrayList<>();
         for (String name : m.getNames()) {
             sorted.add(getPlayer(name));
@@ -168,12 +168,12 @@ public class Game {
         for (int i = 0; i < players.size(); i++) {
             players.get(i).setRole(roles.get(i));
         }
-        
+
         makeNight(true);
-        
+
         return MoveResult.SUCCESS;
     }
-    
+
     private MoveResult kill(Move m) {
 
         // one and only one person can be killed at a time
@@ -187,16 +187,16 @@ public class Game {
         if (candidate == null || candidate.getStatus() == PlayerStatus.DEAD) {
             return MoveResult.INVALID_STATE;
         }
-        
+
         candidate.setStatus(PlayerStatus.DEAD);
-        
+
         checkWin();
-        
+
         return MoveResult.SUCCESS;
     }
-    
+
     private MoveResult useAbility(Move m, Player player) {
-        
+
         Move result = player.getRole().processMove(m, this, player);
 
         // some abilities affect others so we must track over time
@@ -218,17 +218,17 @@ public class Game {
         // so this can only switch to day
         if (players.stream()
                 .allMatch(p -> p.getRole().currentPrompt() == null)) {
-            
+
             applyNightEffects();
-            
+
             initNomination();
             status = GameStatus.DAY_NOMINATE;
             checkWin();
         }
-        
+
         return MoveResult.SUCCESS;
     }
-    
+
     private MoveResult nominate(Move m, Player player) {
 
         // dead or player has already nominated
@@ -236,7 +236,7 @@ public class Game {
                 || !possibleNominators.contains(player)) {
             return MoveResult.NOT_AUTHORIZED;
         }
-        
+
         if (m.getNames().size() > 1) {
             return MoveResult.INVALID_STATE;
         }
@@ -244,17 +244,17 @@ public class Game {
         // this is a "no nomination" move
         // player cannot change their mind later
         if (m.getNames().isEmpty()) {
-            
+
             possibleNominators.remove(player);
 
             // everyone passed, jump to night
             if (possibleNominators.isEmpty()) {
                 makeNight(false);
             }
-            
+
             return MoveResult.SUCCESS;
         }
-        
+
         Player n = possibleNominations.stream()
                 .filter(p -> p.getName().equals(m.getNames().get(0)))
                 .findAny()
@@ -265,12 +265,12 @@ public class Game {
         if (n == null) {
             return MoveResult.INVALID_STATE;
         }
-        
+
         possibleNominators.remove(player);
         possibleNominations.remove(n);
         nominator = player;
         nominated = n;
-        
+
         votes.clear();
         players.stream()
                 .filter(p -> p.getStatus() == PlayerStatus.ALIVE)
@@ -281,22 +281,22 @@ public class Game {
         vote.getNames().add(n.getName());
         vote.setConfirmed(true);
         votes.put(player, vote);
-        
+
         status = GameStatus.DAY_VOTE;
-        
+
         return MoveResult.SUCCESS;
     }
-    
+
     private MoveResult vote(Move m, Player player) {
-        
+
         if (!votes.containsKey(player)) {
             return MoveResult.NOT_AUTHORIZED;
         }
-        
+
         votes.put(player, m);
-        
+
         if (votes.values().stream().allMatch(v -> v != null)) {
-            
+
             int threshold = votes.size() / 2 + 1;
             int yeas = votes.values().stream()
                     .mapToInt(v -> v.isConfirmed() ? 1 : 0)
@@ -304,11 +304,11 @@ public class Game {
 
             // execution
             if (yeas >= threshold) {
-                
+
                 nominated.setStatus(PlayerStatus.DEAD);
                 makeNight(false);
                 checkWin();
-                
+
             } else {
                 if (possibleNominators.size() > 0 && possibleNominations.size() > 0) {
                     nominator = null;
@@ -318,9 +318,9 @@ public class Game {
                     makeNight(false);
                 }
             }
-            
+
         }
-        
+
         return MoveResult.SUCCESS;
     }
 
@@ -328,17 +328,17 @@ public class Game {
      
      */
     private boolean playersMatch(List<String> orderedPlayers) {
-        
+
         if (orderedPlayers == null
                 || orderedPlayers.size() != players.size()) {
             return false;
         }
-        
+
         return players.stream()
                 .allMatch(p -> orderedPlayers.contains(p.getName()));
-        
+
     }
-    
+
     private void initNomination() {
         possibleNominators.clear();
         possibleNominations.clear();
@@ -351,7 +351,7 @@ public class Game {
         nominator = null;
         nominated = null;
     }
-    
+
     private void makeNight(boolean first) {
 
         // queue actions
@@ -360,22 +360,22 @@ public class Game {
                 p.getRole().queueNight(this, p, first);
             }
         }
-        
+
         votes.clear();
 
         // update game status
         status = GameStatus.NIGHT;
     }
-    
+
     private void applyNightEffects() {
-        
+
         for (Player p : night.keySet()) {
-            
+
             List<Ability> nightEffects = night.get(p);
             if (nightEffects == null) {
                 continue;
             }
-            
+
             boolean hasProtection = false;
             boolean hasKill = false;
             for (Ability a : nightEffects) {
@@ -385,20 +385,20 @@ public class Game {
                     hasKill = true;
                 }
             }
-            
+
             if (hasKill && !hasProtection) {
                 p.setStatus(PlayerStatus.DEAD);
             }
         }
-        
+
         night.clear();
     }
-    
+
     private void checkWin() {
-        
+
         int good = 0;
         int evil = 0;
-        
+
         for (Player p : players) {
             if (p.getStatus() == PlayerStatus.ALIVE) {
                 if (p.getRole().getActualAlignment() == Alignment.EVIL) {
@@ -408,12 +408,12 @@ public class Game {
                 }
             }
         }
-        
+
         if (good == 0) {
             status = GameStatus.EVIL_WINS;
         } else if (evil == 0) {
             status = GameStatus.GOOD_WINS;
         }
     }
-    
+
 }

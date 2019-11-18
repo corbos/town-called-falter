@@ -123,10 +123,10 @@
         divErr.classList.remove("hidden");
     }
 
-    function renderSetup(gameState) {
-        if (gameState.gameStatus === "JOINABLE" && session.moderator()) {
+    function renderSetup(state) {
+        if (state.gameStatus === "JOINABLE" && session.moderator()) {
             divStartSetup.classList.remove("hidden");
-            if (gameState.players.length >= 4) {
+            if (state.players.length >= 4) {
                 var node = firstChildElement(divStartSetup);
                 node.removeAttribute("disabled");
                 node.setAttribute("title", "Ready to set up!");
@@ -136,8 +136,8 @@
         }
     }
 
-    function renderStart(gameState) {
-        if (gameState.gameStatus === "SETUP" && session.moderator()) {
+    function renderStart(state) {
+        if (state.gameStatus === "SETUP" && session.moderator()) {
             divStart.classList.remove("hidden");
         } else {
             divStart.classList.add("hidden");
@@ -145,6 +145,7 @@
     }
 
     function renderRole(role) {
+
         if (role) {
 
             divRole.innerHTML = `<div><label>Role:</label>${role.name}</div>
@@ -160,11 +161,11 @@
         }
     }
 
-    function renderVote(gameState) {
-        if (gameState.canVote) {
+    function renderVote(state) {
+        if (state.canVote) {
             byId("divVoteMessage").innerHTML =
-                `<div>${gameState.nominator} nominated ${gameState.nominated}.</div>
-            <div>Execute ${gameState.nominated}?</div>`;
+                `<div>${state.nominator} nominated ${state.nominated}.</div>
+                <div>Execute ${state.nominated}?</div>`;
             divVote.classList.remove("hidden");
             roster.classList.add("hidden");
         } else {
@@ -173,10 +174,10 @@
         }
     }
 
-    function renderMessages(playerMessages) {
-        if (playerMessages.length > 0) {
+    function renderMessages(messages) {
+        if (messages.length > 0) {
             let html = '<h3>Private Messages</h3>';
-            playerMessages.forEach(function (msg) {
+            messages.forEach(function (msg) {
                 html += `<div>${msg}</div>`
             });
             divMessages.innerHTML = html;
@@ -205,21 +206,21 @@
         return "";
     }
 
-    function renderRoster(gameState, kill) {
+    function renderRoster(state, kill) {
 
-        let arrange = session.moderator() && gameState.gameStatus === "SETUP";
-        let prompt = gameState.prompt;
+        let arrange = session.moderator() && state.gameStatus === "SETUP";
+        let prompt = state.prompt;
         let selectedPlayers = session.selectedPlayers();
 
         let html = "";
 
-        gameState.players.forEach(function (player) {
+        state.players.forEach(function (player) {
 
             let controls = getAdminControls(player, arrange, kill);
 
-            if (gameState.canNominate) {
+            if (state.canNominate) {
                 if (session.playerName() !== player.name
-                    && gameState.possibleNominations.indexOf(player.name) >= 0) {
+                    && state.possibleNominations.indexOf(player.name) >= 0) {
                     controls += `<td>
                     <button onclick="routeClick(this, 'nominate');">nominate</button>
                     </td>`;
@@ -262,34 +263,34 @@
         "GOOD_WINS": { header: "Good Wins", bodyClass: "good-wins", modCanKill: false }
     };
 
-    function render(gameState) {
+    function render(state) {
 
-        let settings = gameStatusUI[gameState.gameStatus];
+        let settings = gameStatusUI[state.gameStatus];
         gameHeader.textContent = settings.header;
         document.body.className = settings.bodyClass;
 
-        renderSetup(gameState);
-        renderStart(gameState);
-        renderRole(gameState.role);
-        renderRoster(gameState, settings.modCanKill && session.moderator());
+        renderSetup(state);
+        renderStart(state);
+        renderRole(state.role);
+        renderRoster(state, settings.modCanKill && session.moderator());
 
-        if (gameState.canNominate
-            || (gameState.prompt && gameState.prompt.dismissable)) {
+        if (state.canNominate
+            || (state.prompt && state.prompt.dismissable)) {
             decline.classList.remove("hidden");
         } else {
             decline.classList.add("hidden");
         }
 
-        session.prompt(gameState.prompt);
-        if (gameState.prompt) {
-            promptHeader.innerText = " - " + gameState.prompt.prompt;
+        session.prompt(state.prompt);
+        if (state.prompt) {
+            promptHeader.innerText = " - " + state.prompt.prompt;
             promptHeader.classList.remove("hidden");
         } else {
             promptHeader.classList.add("hidden");
         }
 
-        renderVote(gameState);
-        renderMessages(gameState.playerMessages);
+        renderVote(state);
+        renderMessages(state.playerMessages);
     }
 
     function ack(msg) {
@@ -332,6 +333,7 @@
         };
 
         ws.onerror = function (err) {
+            showErr(err);
             console.log("ws err:", err);
         };
     }
@@ -485,8 +487,6 @@
             let div = href.parentElement.parentElement;
             let node = firstChildElement(div);
 
-            console.log(node.textContent.trim());
-
             move({ type: "KILL", names: [node.textContent.trim()] });
         },
         nominate: function (btn) {
@@ -551,7 +551,7 @@
         return false;
     };
 
-    // process DOM and check for state
+    // wire-up handlers
     function handleAction(evt) {
         let action = this.getAttribute("data-action");
         actions[action].call(this, evt);
