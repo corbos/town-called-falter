@@ -271,6 +271,15 @@ public class Game {
         nominator = player;
         nominated = n;
 
+        Ability nominationResult = n.getRole().nominate();
+
+        // whoops, nominated the wrong person.
+        if (nominationResult == Ability.KILL) {
+            player.setStatus(PlayerStatus.DEAD);
+            makeNight(false);
+            return MoveResult.SUCCESS;
+        }
+
         votes.clear();
         players.stream()
                 .filter(p -> p.getStatus() == PlayerStatus.ALIVE)

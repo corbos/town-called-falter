@@ -16,13 +16,20 @@ See [Werewolf](https://en.wikipedia.org/wiki/Werewolf_(social_deduction_game)) f
 6. A player can only nominate once during the day.
 
 ## Roles
+---
+
+### Good
 
 - **Villager**: no special abilities
-- **Wolf**: kill at night
 - **Seer**: ascertain another player's alignment, just remember that you're not always right
-- **Cur**: appears evil, but it good
-- **Psychiatrist**: ascertain if another player's perceived and actual alignment are the same (are they conflicted?)
-- **Guardian**: protect one player each night, can't repeat players and can't protect yourself
+- **Cur**: appears evil, but is good
+- **Psychiatrist**: ascertain if another player's perceived and actual alignment are the same -- are they conflicted?
+- **Guardian**: protect one player each night. can't repeat players and can't protect yourself
+- **The Innocent**: you're so, so innocent. once per game, if nominated for execution the nominator dies.
+
+### Evil
+
+- **Wolf**: kill at night. wolves must agree on the victim
 
 ## Technology
 

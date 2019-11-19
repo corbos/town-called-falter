@@ -161,6 +161,10 @@ public abstract class Role {
         return null;
     }
 
+    public Ability nominate() {
+        return Ability.NONE;
+    }
+
     private void queueAdjacent(Game game) {
 
         List<Player> players = game.getPlayers();

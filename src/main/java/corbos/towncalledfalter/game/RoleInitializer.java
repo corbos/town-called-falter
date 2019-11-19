@@ -1,6 +1,7 @@
 package corbos.towncalledfalter.game;
 
 import corbos.towncalledfalter.game.roles.Guardian;
+import corbos.towncalledfalter.game.roles.Innocent;
 import corbos.towncalledfalter.game.roles.Role;
 import corbos.towncalledfalter.game.roles.Seer;
 import corbos.towncalledfalter.game.roles.Villager;
@@ -15,13 +16,15 @@ public class RoleInitializer {
     public static List<Role> makeRoles(int count) {
 
         ArrayList<Role> roles = new ArrayList<>();
+
         roles.add(new Seer());
+        roles.add(new Guardian());
+        roles.add(new Innocent());
+
         HashSet<Player> sharedVotes = new HashSet<>();
-        roles.add(new Wolf(sharedVotes));
-        if (count > 6) {
+        for (int i = 0; i < count / 4; i++) {
             roles.add(new Wolf(sharedVotes));
         }
-        roles.add(new Guardian());
 
         int villagerCount = count - roles.size();
         for (int i = 0; i < villagerCount; i++) {

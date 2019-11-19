@@ -13,7 +13,9 @@ public enum RoleLabel {
             + "their actual alignment."),
     GUARDIAN("Guardian", "Each night, you protect one player from harm. "
             + "You cannot pick yourself. "
-            + "You cannot pick the same player two nights in a row.");
+            + "You cannot pick the same player two nights in a row."),
+    INNOCENT("The Innocent", "You're incredibly good, pure, and beyond reproach. "
+            + "Once per game, if nominated for execution the nominator dies.");
 
     private final String name;
     private final String description;
